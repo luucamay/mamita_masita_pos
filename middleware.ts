@@ -42,6 +42,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
+  if (data?.claims && request.nextUrl.pathname.startsWith("/menu-admin")) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, active")
+      .eq("id", String(data.claims.sub))
+      .maybeSingle();
+    if (profile?.role !== "admin" || profile.active !== true) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
   return response;
 }
 

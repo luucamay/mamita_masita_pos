@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   HistoryIcon,
   MenuIcon,
@@ -23,6 +23,24 @@ const navItems = [
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadRole() {
+      const supabase = createClient();
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userData.user.id)
+        .maybeSingle();
+      if (mounted) setRole(data?.role ?? null);
+    }
+    void loadRole();
+    return () => { mounted = false; };
+  }, []);
 
   if (pathname === "/login") {
     return <>{children}</>;
@@ -41,7 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           MM
         </div>
         <nav className="flex w-full flex-1 flex-col gap-2">
-          {navItems.map((item) => {
+          {navItems.filter((item) => item.href !== "/menu-admin" || role === "admin").map((item) => {
             const active =
               item.href === "/"
                 ? pathname === "/"

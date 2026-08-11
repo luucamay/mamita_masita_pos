@@ -338,9 +338,6 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
             <section key={category.id}>
               <div className="mb-3 flex items-end justify-between">
                 <h2 className="text-lg font-semibold">{category.name}</h2>
-                <span className="text-xs font-medium tracking-wide text-[var(--muted)] uppercase">
-                  {category.queue_type === "kitchen" ? "Cocina" : "Café"}
-                </span>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {categoryItems.map((item) => (

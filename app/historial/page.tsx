@@ -73,6 +73,16 @@ export default async function HistorialPage({
         </div>
       </div>
 
+      <div className="mt-4 flex justify-end">
+        <a
+          href={`/historial/export?period=${period}`}
+          download
+          className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700 transition hover:bg-orange-100"
+        >
+          Exportar CSV
+        </a>
+      </div>
+
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <div className="rounded-2xl border border-[var(--border)] bg-white p-4">
           <p className="text-sm text-[var(--muted)]">Venta total</p>
