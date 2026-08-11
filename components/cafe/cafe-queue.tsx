@@ -99,22 +99,7 @@ export function CafeQueue({ initialItems }: { initialItems: CafeQueueItem[] }) {
 
   return (
     <div>
-      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="font-semibold text-orange-950">Estación de café</p>
-          <p className="text-sm text-orange-800">Los pedidos nuevos aparecerán automáticamente.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setSoundEnabled((enabled) => !enabled);
-            if (!soundEnabled) playNotification();
-          }}
-          className="rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600"
-        >
-          {soundEnabled ? "Sonido activado" : "Activar sonido"}
-        </button>
-      </div>
+      
 
       {error ? <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
 

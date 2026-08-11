@@ -189,15 +189,6 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
     setMessage(null);
   }
 
-  function handleCreateOrderMeta() {
-    if (!tableNumber.trim()) {
-      setMessage("Ingresa el número de mesa.");
-      return;
-    }
-    setNeedsDetails(false);
-    setMessage(null);
-  }
-
   async function handleConfirmDraft() {
     if (!tableNumber.trim()) {
       setNeedsDetails(true);
@@ -431,13 +422,6 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
                       className="mt-1 w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2.5 outline-none ring-orange-200 focus:ring-4"
                     />
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleCreateOrderMeta}
-                    className="w-full rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600"
-                  >
-                    Crear
-                  </button>
                 </div>
               ) : (
                 <button
