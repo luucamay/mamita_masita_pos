@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   CloseIcon,
   MinusIcon,
@@ -9,6 +10,7 @@ import {
   TrashIcon,
 } from "@/components/icons";
 import type { Category, DraftOrderLine, MenuItem } from "@/lib/types";
+import { createClient } from "@/lib/supabase/client";
 
 type MenuHomeProps = {
   categories: Category[];
@@ -25,6 +27,7 @@ function formatMoney(value: number) {
 }
 
 export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [activeCategoryId, setActiveCategoryId] = useState<string>("all");
   const [lines, setLines] = useState<DraftOrderLine[]>([]);
@@ -33,6 +36,7 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [needsDetails, setNeedsDetails] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -123,7 +127,7 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
     setMessage(null);
   }
 
-  function handleConfirmDraft() {
+  async function handleConfirmDraft() {
     if (!tableNumber.trim()) {
       setNeedsDetails(true);
       setMessage("Ingresa el número de mesa.");
@@ -134,12 +138,53 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
       return;
     }
 
-    // Order create RPC will be wired next; keep local draft UX ready.
-    setMessage(
-      `Pedido listo para confirmar · Mesa ${tableNumber.trim()}${
-        customerName.trim() ? ` · ${customerName.trim()}` : ""
-      } · ${formatMoney(subtotal)}`,
-    );
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const supabase = createClient();
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        throw new Error("Tu sesión expiró. Ingresa nuevamente.");
+      }
+
+      const { data: createdOrder, error: createError } = await supabase.rpc(
+        "create_order",
+        {
+          p_table_number: tableNumber.trim(),
+          p_customer_name: customerName.trim() || null,
+          p_created_by: userData.user.id,
+        },
+      );
+      if (createError) throw createError;
+
+      const order = Array.isArray(createdOrder) ? createdOrder[0] : createdOrder;
+      if (!order?.order_id) throw new Error("No se pudo crear el pedido.");
+
+      for (const line of lines) {
+        const { error: itemError } = await supabase.rpc("add_order_item", {
+          p_order_id: order.order_id,
+          p_menu_item_id: line.menuItemId,
+          p_quantity: line.quantity,
+          p_created_by: userData.user.id,
+        });
+        if (itemError) throw itemError;
+      }
+
+      const { error: confirmError } = await supabase.rpc("confirm_order", {
+        p_order_id: order.order_id,
+        p_confirmed_by: userData.user.id,
+      });
+      if (confirmError) throw confirmError;
+
+      router.push("/pedidos");
+      router.refresh();
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "No se pudo confirmar el pedido.",
+      );
+      setSaving(false);
+    }
   }
 
   return (
@@ -394,10 +439,11 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
                 </button>
                 <button
                   type="button"
+                  disabled={saving}
                   onClick={handleConfirmDraft}
-                  className="rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600"
+                  className="rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Confirmar
+                  {saving ? "Guardando..." : "Confirmar"}
                 </button>
               </div>
             </div>

@@ -1,4 +1,10 @@
 export type QueueType = "kitchen" | "cafe";
+export type OrderStatus =
+  | "pendiente"
+  | "confirmado"
+  | "entregado"
+  | "pagado"
+  | "archivado";
 
 export type Category = {
   id: string;
@@ -26,4 +32,15 @@ export type DraftOrderLine = {
   quantity: number;
   categoryName: string;
   queueType: QueueType;
+};
+
+export type OpenOrder = {
+  id: string;
+  order_number: string;
+  table_number: string;
+  customer_name: string | null;
+  status: OrderStatus;
+  created_at: string;
+  item_count: number;
+  total: number | string;
 };
