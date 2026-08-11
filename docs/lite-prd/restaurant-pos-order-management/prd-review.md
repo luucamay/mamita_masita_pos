@@ -1,12 +1,13 @@
 # Review Result
 The project does not implement all lite-prd.md requirements. Core order creation, queue classification, delivery, payment methods, reporting views, and authentication exist, but several required flows are missing or incomplete.
 ## Findings
-1. Admin menu management is not implemented
+1. DONE Admin menu management is not implemented
 - app/menu-admin/page.tsx:1-7 only displays “Próximamente.”
 - Missing create item, edit price, delete item, and category selection flows.
 2. Payment/detail flow is incomplete
 - components/orders/orders-list.tsx:236-352 provides only a modal.
 - Missing required print action, Terminar pedido, and add-more-items functionality from the detail screen.
+- add print button and edit order 
 3. Kitchen printing is not automatic
 - Confirmation creates a queued print_jobs record in supabase/migrations/0001_init.sql:425-441.
 - The frontend instead opens a browser print window in components/menu/menu-home.tsx:203-258.
@@ -47,7 +48,7 @@ The project does not implement all lite-prd.md requirements. Core order creation
 - Supabase-backed order, payment, and reporting data.
 - TypeScript validation passes with pnpm exec tsc --noEmit --incremental false.
 ## Implementation Plan
-1. Complete admin functionality
+1. DONE Complete admin functionality
 - Build /menu-admin with create, edit-price, delete, category, validation, loading, and error states.
 - Add role-aware navigation and server-side authorization.
 - Restore role-based RLS and replace the permissive migration.
@@ -61,7 +62,7 @@ The project does not implement all lite-prd.md requirements. Core order creation
 - Add a printer worker or server-side integration for queued print_jobs.
 - Track queued, sent, and failed states.
 - Keep browser printing only as a fallback.
-4. Add reporting export
+4. DONE Add reporting export
 - Add CSV export for daily, weekly, and monthly reports.
 - Ensure exported columns match the PRD exactly.
 5. Fix notification UX

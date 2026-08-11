@@ -33,10 +33,11 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-export function OrdersList({ orders }: { orders: OpenOrder[] }) {
+export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; closed?: boolean }) {
   const router = useRouter();
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<OpenOrder | null>(null);
   const [detailItems, setDetailItems] = useState<OrderDetailItem[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -56,6 +57,7 @@ export function OrdersList({ orders }: { orders: OpenOrder[] }) {
 
   async function showDetails(order: OpenOrder) {
     setSelectedOrder(order);
+    setSelectedPaymentMethod(null);
     setDetailItems([]);
     setDetailsError(null);
     setDetailsLoading(true);
@@ -127,6 +129,7 @@ export function OrdersList({ orders }: { orders: OpenOrder[] }) {
     if (archiveError) setError(archiveError.message);
     else {
       setPaymentOrderId(null);
+      setSelectedPaymentMethod(null);
       setSelectedOrder((current) =>
         current?.id === orderId ? { ...current, status: "pagado" } : current,
       );
@@ -138,9 +141,9 @@ export function OrdersList({ orders }: { orders: OpenOrder[] }) {
   if (orders.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-[var(--border)] bg-white px-6 py-16 text-center">
-        <p className="font-medium">No hay pedidos abiertos</p>
+        <p className="font-medium">{closed ? "No hay pedidos cerrados" : "No hay pedidos abiertos"}</p>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Los pedidos confirmados aparecerán aquí.
+          {closed ? "Los pedidos pagados aparecerán aquí." : "Los pedidos confirmados aparecerán aquí."}
         </p>
       </div>
     );
@@ -166,9 +169,11 @@ export function OrdersList({ orders }: { orders: OpenOrder[] }) {
                }
              }}
              className={`cursor-pointer rounded-2xl border px-4 py-4 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-orange-500 ${
-              delivered
-                ? "border-gray-200 bg-gray-100/80"
-                : "border-orange-200 bg-orange-50/70"
+               closed
+                 ? "border-gray-200 bg-gray-100/80"
+                 : delivered
+                 ? "border-gray-200 bg-gray-100/80"
+                 : "border-orange-200 bg-orange-50/70"
             }`}
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -187,7 +192,7 @@ export function OrdersList({ orders }: { orders: OpenOrder[] }) {
               </div>
               <div className="flex items-center justify-between gap-4 sm:justify-end">
                 <p className="font-semibold">{formatMoney(order.total)}</p>
-                {!delivered ? (
+                 {!closed && !delivered ? (
                    <button
                      type="button"
                      disabled={workingId === order.id}
@@ -199,7 +204,7 @@ export function OrdersList({ orders }: { orders: OpenOrder[] }) {
                   >
                     {workingId === order.id ? "Guardando..." : "Entregado"}
                   </button>
-                ) : paymentOrderId === order.id ? (
+                 ) : !closed && paymentOrderId === order.id ? (
                   <div className="flex flex-wrap justify-end gap-2">
                     {(["cash", "qr", "card"] as PaymentMethod[]).map((method) => (
                       <button
@@ -216,8 +221,8 @@ export function OrdersList({ orders }: { orders: OpenOrder[] }) {
                       </button>
                     ))}
                   </div>
-                ) : (
-                  <button
+                 ) : !closed ? (
+                   <button
                    type="button"
                    onClick={(event) => {
                      event.stopPropagation();
@@ -226,8 +231,8 @@ export function OrdersList({ orders }: { orders: OpenOrder[] }) {
                     className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold hover:bg-gray-50"
                   >
                     Pagar
-                  </button>
-                )}
+                   </button>
+                 ) : null}
               </div>
             </div>
            </article>
@@ -307,8 +312,12 @@ export function OrdersList({ orders }: { orders: OpenOrder[] }) {
                   <span className="font-semibold">Total</span>
                   <span className="text-lg font-semibold">{formatMoney(selectedOrder.total)}</span>
                 </div>
-                <div className="mt-5">
-                  {selectedOrder.status !== "entregado" && selectedOrder.status !== "pagado" ? (
+                 <div className="mt-5">
+                   {closed || selectedOrder.status === "archivado" ? (
+                     <div className="w-full rounded-xl bg-gray-100 px-4 py-3 text-center text-sm font-semibold text-gray-600">
+                       Cerrado
+                     </div>
+                   ) : selectedOrder.status !== "entregado" && selectedOrder.status !== "pagado" ? (
                     <button
                       type="button"
                       disabled={workingId === selectedOrder.id}
@@ -321,28 +330,41 @@ export function OrdersList({ orders }: { orders: OpenOrder[] }) {
                     <div className="w-full rounded-xl bg-green-50 px-4 py-3 text-center text-sm font-semibold text-green-700">
                       Pagado
                     </div>
-                  ) : paymentOrderId === selectedOrder.id ? (
-                    <div className="flex flex-wrap justify-end gap-2">
-                      {(["cash", "qr", "card"] as PaymentMethod[]).map((method) => (
-                        <button
-                          key={method}
-                          type="button"
-                          disabled={workingId === selectedOrder.id}
-                          onClick={() => registerPayment(selectedOrder.id, method)}
-                          className="flex-1 rounded-xl border border-gray-300 bg-white px-3 py-3 text-xs font-semibold hover:bg-gray-50 disabled:opacity-60"
-                        >
-                          {method === "cash" ? "Efectivo" : method === "qr" ? "QR" : "Tarjeta"}
-                        </button>
-                      ))}
-                    </div>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => setPaymentOrderId(selectedOrder.id)}
-                      className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold hover:bg-gray-50"
-                    >
-                      Pagar
-                    </button>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="mb-2 text-sm font-semibold">Tipo de pago</p>
+                        <div className="flex flex-wrap gap-2">
+                          {(["cash", "qr", "card"] as PaymentMethod[]).map((method) => (
+                            <button
+                              key={method}
+                              type="button"
+                              disabled={workingId === selectedOrder.id}
+                              onClick={() => setSelectedPaymentMethod(method)}
+                              className={`flex-1 rounded-xl border px-3 py-3 text-xs font-semibold hover:bg-gray-50 disabled:opacity-60 ${
+                                selectedPaymentMethod === method
+                                  ? "border-orange-500 bg-orange-50 text-orange-700 ring-1 ring-orange-500"
+                                  : "border-gray-300 bg-white"
+                              }`}
+                            >
+                              {method === "cash" ? "Efectivo" : method === "qr" ? "QR" : "Tarjeta"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={!selectedPaymentMethod || workingId === selectedOrder.id}
+                        onClick={() => {
+                          if (selectedPaymentMethod) {
+                            registerPayment(selectedOrder.id, selectedPaymentMethod);
+                          }
+                        }}
+                        className="w-full rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {workingId === selectedOrder.id ? "Procesando..." : "Pagar"}
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
