@@ -59,3 +59,8 @@ export type CafeQueueItem = {
   item_status: "pending" | "delivered" | "voided";
   created_at: string;
 };
+
+export type KitchenQueueItem = Omit<CafeQueueItem, "item_status"> & {
+  item_status: "pending" | "delivered" | "voided";
+  printed_at: string | null;
+};
