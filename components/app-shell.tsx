@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 
 const navItems = [
   { href: "/", label: "Menú", icon: MenuIcon },
+  { href: "/cafe", label: "Café", icon: OrdersIcon },
   { href: "/pedidos", label: "Pedidos", icon: OrdersIcon },
   { href: "/historial", label: "Historial", icon: HistoryIcon },
   { href: "/menu-admin", label: "Admin menú", icon: SettingsIcon },

@@ -44,3 +44,18 @@ export type OpenOrder = {
   item_count: number;
   total: number | string;
 };
+
+export type CafeQueueItem = {
+  order_id: string;
+  order_number: string;
+  table_number: string;
+  customer_name: string | null;
+  order_status: OrderStatus;
+  order_item_id: string;
+  item_name: string;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+  item_status: "pending" | "delivered" | "voided";
+  created_at: string;
+};
