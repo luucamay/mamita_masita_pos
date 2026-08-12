@@ -7,7 +7,8 @@ The project does not implement all lite-prd.md requirements. Core order creation
 2. Payment/detail flow is incomplete
 - components/orders/orders-list.tsx:236-352 provides only a modal.
 - Missing required print action, Terminar pedido, and add-more-items functionality from the detail screen.
-- add print button and edit order 
+- add print button DONE
+- add edit order (check with produc owner)
 3. Kitchen printing is not automatic
 - Confirmation creates a queued print_jobs record in supabase/migrations/0001_init.sql:425-441.
 - The frontend instead opens a browser print window in components/menu/menu-home.tsx:203-258.
@@ -52,13 +53,13 @@ The project does not implement all lite-prd.md requirements. Core order creation
 - Build /menu-admin with create, edit-price, delete, category, validation, loading, and error states.
 - Add role-aware navigation and server-side authorization.
 - Restore role-based RLS and replace the permissive migration.
-2. Complete payment/detail flow
+2. CHECK Complete payment/detail flow
 - Add a dedicated payment/detail view or expand the modal.
 - Implement order printing.
 - Add Terminar pedido.
 - Allow adding menu items to delivered orders before payment.
 - Recalculate totals and preserve item snapshots.
-3. Implement required printing
+3. LATEST Implement required printing
 - Add a printer worker or server-side integration for queued print_jobs.
 - Track queued, sent, and failed states.
 - Keep browser printing only as a fallback.

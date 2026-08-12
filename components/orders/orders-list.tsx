@@ -33,6 +33,22 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+const paymentLabels: Record<PaymentMethod, string> = {
+  cash: "Efectivo",
+  qr: "QR",
+  card: "Tarjeta",
+};
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>'"]/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    '"': "&quot;",
+  })[character] ?? character);
+}
+
 export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; closed?: boolean }) {
   const router = useRouter();
   const [workingId, setWorkingId] = useState<string | null>(null);
@@ -138,6 +154,52 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
     setWorkingId(null);
   }
 
+  function printOrder(order: OpenOrder, items: OrderDetailItem[]) {
+    const printWindow = window.open("", "_blank", "width=420,height=700");
+    if (!printWindow) {
+      setError("Permite las ventanas emergentes para imprimir el pedido.");
+      return;
+    }
+
+    printWindow.document.write(`<!doctype html>
+      <html lang="es">
+        <head>
+          <meta charset="utf-8" />
+          <title>Pedido #${escapeHtml(order.order_number)}</title>
+          <style>
+            * { box-sizing: border-box; }
+            body { margin: 0; padding: 20px; color: #222; font-family: Arial, sans-serif; font-size: 14px; }
+            h1 { margin: 0 0 4px; font-size: 22px; }
+            p { margin: 4px 0; }
+            .muted { color: #666; }
+            .meta { margin: 16px 0; padding: 10px 0; border-top: 1px dashed #999; border-bottom: 1px dashed #999; }
+            ul { list-style: none; margin: 0; padding: 0; }
+            li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px dashed #ccc; }
+            .item { min-width: 0; }
+            .price { flex-shrink: 0; font-weight: 600; }
+            .total { display: flex; justify-content: space-between; margin-top: 14px; font-size: 18px; font-weight: 700; }
+          </style>
+        </head>
+        <body>
+          <h1>Pedido #${escapeHtml(order.order_number)}</h1>
+          <p class="muted">${escapeHtml(formatDate(order.created_at))}</p>
+          <div class="meta">
+            <p><strong>Mesa:</strong> ${escapeHtml(order.table_number)}</p>
+            ${order.customer_name ? `<p><strong>Cliente:</strong> ${escapeHtml(order.customer_name)}</p>` : ""}
+            <p><strong>Estado:</strong> ${escapeHtml(order.status)}</p>
+          </div>
+          <ul>
+            ${items.map((item) => `<li><span class="item">${item.quantity} × ${escapeHtml(item.item_name)}</span><span class="price">${escapeHtml(formatMoney(item.line_total))}</span></li>`).join("")}
+          </ul>
+          <div class="total"><span>Total</span><span>${escapeHtml(formatMoney(order.total))}</span></div>
+        </body>
+      </html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  }
+
   if (orders.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-[var(--border)] bg-white px-6 py-16 text-center">
@@ -185,11 +247,17 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
                     {order.status}
                   </span>
                 </div>
-                <p className="mt-1 text-sm text-[var(--muted)]">
-                  {formatDate(order.created_at)} · {order.item_count} ítem(s)
-                  {order.customer_name ? ` · ${order.customer_name}` : ""}
-                </p>
-              </div>
+                 <p className="mt-1 text-sm text-[var(--muted)]">
+                   {formatDate(order.created_at)} · {order.item_count} ítem(s)
+                   {order.customer_name ? ` · ${order.customer_name}` : ""}
+                 </p>
+                 {closed ? (
+                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
+                     {order.delivered_at ? <span>Entregado: {formatDate(order.delivered_at)}</span> : null}
+                     {order.paid_at ? <span>Pagado: {formatDate(order.paid_at)}</span> : null}
+                   </div>
+                 ) : null}
+               </div>
               <div className="flex items-center justify-between gap-4 sm:justify-end">
                 <p className="font-semibold">{formatMoney(order.total)}</p>
                  {!closed && !delivered ? (
@@ -258,14 +326,24 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
                   #{selectedOrder.order_number}
                 </h2>
               </div>
-              <button
-                type="button"
-                aria-label="Cerrar detalle"
-                onClick={() => setSelectedOrder(null)}
-                className="rounded-xl px-3 py-1 text-2xl leading-none text-[var(--muted)] hover:bg-gray-100"
-              >
-                ×
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={detailsLoading || Boolean(detailsError) || detailItems.length === 0}
+                  onClick={() => printOrder(selectedOrder, detailItems)}
+                  className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Imprimir
+                </button>
+                <button
+                  type="button"
+                  aria-label="Cerrar detalle"
+                  onClick={() => setSelectedOrder(null)}
+                  className="rounded-xl px-3 py-1 text-2xl leading-none text-[var(--muted)] hover:bg-gray-100"
+                >
+                  ×
+                </button>
+              </div>
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-orange-50 p-4 text-sm">
@@ -281,6 +359,12 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
                 <div className="col-span-2">
                   <p className="text-[var(--muted)]">Cliente</p>
                   <p className="mt-1 font-semibold">{selectedOrder.customer_name}</p>
+                </div>
+              ) : null}
+              {selectedOrder.payment_method ? (
+                <div>
+                  <p className="text-[var(--muted)]">Pago</p>
+                  <p className="mt-1 font-semibold">{paymentLabels[selectedOrder.payment_method]}</p>
                 </div>
               ) : null}
             </div>

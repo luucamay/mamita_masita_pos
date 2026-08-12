@@ -40,7 +40,10 @@ export type OpenOrder = {
   table_number: string;
   customer_name: string | null;
   status: OrderStatus;
+  payment_method?: "cash" | "qr" | "card" | null;
   created_at: string;
+  delivered_at: string | null;
+  paid_at: string | null;
   item_count: number;
   total: number | string;
 };

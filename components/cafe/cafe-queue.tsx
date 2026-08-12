@@ -12,12 +12,7 @@ function formatTime(value: string) {
   }).format(new Date(value));
 }
 
-function playNotification() {
-  const AudioContextClass = window.AudioContext ??
-    (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!AudioContextClass) return;
-
-  const context = new AudioContextClass();
+function playNotification(context: AudioContext) {
   const oscillator = context.createOscillator();
   const gain = context.createGain();
   oscillator.type = "sine";
@@ -30,16 +25,17 @@ function playNotification() {
   gain.connect(context.destination);
   oscillator.start();
   oscillator.stop(context.currentTime + 0.45);
-  oscillator.addEventListener("ended", () => void context.close());
 }
 
 export function CafeQueue({ initialItems }: { initialItems: CafeQueueItem[] }) {
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundReady, setSoundReady] = useState(false);
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const soundEnabledRef = useRef(soundEnabled);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
     soundEnabledRef.current = soundEnabled;
@@ -54,7 +50,9 @@ export function CafeQueue({ initialItems }: { initialItems: CafeQueueItem[] }) {
         { event: "INSERT", schema: "public", table: "order_items" },
         (payload) => {
           if (payload.new.queue_type !== "cafe" || payload.new.status !== "pending") return;
-          if (soundEnabledRef.current) playNotification();
+          if (soundEnabledRef.current && audioContextRef.current?.state === "running") {
+            playNotification(audioContextRef.current);
+          }
           router.refresh();
         },
       )
@@ -66,8 +64,10 @@ export function CafeQueue({ initialItems }: { initialItems: CafeQueueItem[] }) {
         },
       )
       .subscribe();
+    const refreshInterval = window.setInterval(() => router.refresh(), 5000);
 
     return () => {
+      window.clearInterval(refreshInterval);
       void supabase.removeChannel(channel);
     };
   }, [router]);
@@ -90,6 +90,32 @@ export function CafeQueue({ initialItems }: { initialItems: CafeQueueItem[] }) {
     setWorkingId(null);
   }
 
+  async function enableSound() {
+    const AudioContextClass = window.AudioContext ??
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) {
+      setError("Este navegador no permite reproducir notificaciones de sonido.");
+      return;
+    }
+
+    const context = audioContextRef.current ?? new AudioContextClass();
+    audioContextRef.current = context;
+    try {
+      await context.resume();
+    } catch {
+      setError("No se pudo activar el sonido. Revisa los permisos del navegador.");
+      return;
+    }
+    if (context.state !== "running") {
+      setError("No se pudo activar el sonido. Revisa los permisos del navegador.");
+      return;
+    }
+
+    playNotification(context);
+    setSoundReady(true);
+    setError(null);
+  }
+
   const grouped = items.reduce<Map<string, CafeQueueItem[]>>((groups, item) => {
     const orderItems = groups.get(item.order_id) ?? [];
     orderItems.push(item);
@@ -99,7 +125,18 @@ export function CafeQueue({ initialItems }: { initialItems: CafeQueueItem[] }) {
 
   return (
     <div>
-      
+      {!soundReady ? (
+        <div className="mb-4 flex items-center justify-between gap-4 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
+          <p className="text-sm text-orange-900">Activa el sonido para recibir una alerta cuando llegue un pedido nuevo.</p>
+          <button
+            type="button"
+            onClick={() => void enableSound()}
+            className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-xs font-semibold text-white hover:bg-orange-700"
+          >
+            Activar sonido
+          </button>
+        </div>
+      ) : null}
 
       {error ? <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
 
