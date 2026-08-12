@@ -13,10 +13,10 @@ The project does not implement all lite-prd.md requirements. Core order creation
 - Confirmation creates a queued print_jobs record in supabase/migrations/0001_init.sql:425-441.
 - The frontend instead opens a browser print window in components/menu/menu-home.tsx:203-258.
 - No IPP/LPR worker, Edge Function, or printer integration exists.
-4. CSV export is missing
+4. DONE CSV export is missing 
 - The PRD explicitly requires CSV export at lite-prd.md:86.
 - app/historial/page.tsx has period selectors and a report table, but no export control or download implementation.
-5. Notification sound is disabled by default
+5. FIXED Notification sound is disabled by default 
 - Both queue components initialize soundEnabled to false, with no visible control to enable it:
 - components/cafe/cafe-queue.tsx:36-45
 - components/kitchen/kitchen-queue.tsx:33-43
@@ -53,7 +53,7 @@ The project does not implement all lite-prd.md requirements. Core order creation
 - Build /menu-admin with create, edit-price, delete, category, validation, loading, and error states.
 - Add role-aware navigation and server-side authorization.
 - Restore role-based RLS and replace the permissive migration.
-2. CHECK Complete payment/detail flow
+2. REVIEW WITH LUZ Complete payment/detail flow
 - Add a dedicated payment/detail view or expand the modal.
 - Implement order printing.
 - Add Terminar pedido.
@@ -66,11 +66,11 @@ The project does not implement all lite-prd.md requirements. Core order creation
 4. DONE Add reporting export
 - Add CSV export for daily, weekly, and monthly reports.
 - Ensure exported columns match the PRD exactly.
-5. Fix notification UX
+5. DONE Fix notification UX
 - Add an explicit “Activar sonido” control.
 - Enable sound after a user gesture to satisfy browser autoplay restrictions.
 - Test realtime inserts on both café and kitchen screens.
-6. Improve order editing
+6. REVIEW WITH LUZ Improve order editing
 - Decide whether drafts should remain client-only or persist immediately.
 - If persisted, add a reopen/edit flow using update_order_item.
 - Add tests for editing, removal, and adding items after delivery.
@@ -79,3 +79,5 @@ The project does not implement all lite-prd.md requirements. Core order creation
 - Add role-specific tests for admin, staff, cook, and barista.
 - Add frontend/E2E coverage for the complete lifecycle and payment-detail flow.
 
+8. Deploy to production
+9. Update with real menu

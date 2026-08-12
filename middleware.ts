@@ -39,16 +39,39 @@ export async function middleware(request: NextRequest) {
   }
 
   if (data?.claims && isLoginPage) {
-    return NextResponse.redirect(new URL("/", request.url));
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", String(data.claims.sub))
+      .maybeSingle();
+    const destination =
+      profile?.role === "barista"
+        ? "/cafe"
+        : profile?.role === "cook"
+          ? "/cocina"
+          : "/";
+    return NextResponse.redirect(new URL(destination, request.url));
   }
 
-  if (data?.claims && request.nextUrl.pathname.startsWith("/menu-admin")) {
+  if (data?.claims) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role, active")
       .eq("id", String(data.claims.sub))
       .maybeSingle();
-    if (profile?.role !== "admin" || profile.active !== true) {
+
+    if (profile?.role === "barista" && request.nextUrl.pathname !== "/cafe") {
+      return NextResponse.redirect(new URL("/cafe", request.url));
+    }
+
+    if (profile?.role === "cook" && request.nextUrl.pathname !== "/cocina") {
+      return NextResponse.redirect(new URL("/cocina", request.url));
+    }
+
+    if (
+      request.nextUrl.pathname.startsWith("/menu-admin") &&
+      (profile?.role !== "admin" || profile.active !== true)
+    ) {
       return NextResponse.redirect(new URL("/", request.url));
     }
   }
