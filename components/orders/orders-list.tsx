@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { OpenOrder } from "@/lib/types";
+import { TableIcon } from "@/components/icons";
 
 type PaymentMethod = "cash" | "qr" | "card";
 
@@ -238,25 +239,37 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
                  : "border-orange-200 bg-orange-50/70"
             }`}
           >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <h2 className="font-semibold">#{order.order_number}</h2>
-                  <span className="text-sm text-[var(--muted)]">Mesa {order.table_number}</span>
-                  {closed ? (
-                    <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium capitalize">
-                      {order.status}
-                    </span>
-                  ) : null}
-                </div>
-                <p className="mt-1 text-sm text-[var(--muted)]">
-                  {formatDate(order.created_at)}
-                  {closed ? ` · ${order.item_count} ítem(s)` : ""}
-                  {closed && order.customer_name ? ` · ${order.customer_name}` : ""}
-                </p>
-                {closed ? (
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
-                    {order.delivered_at ? <span>Entregado: {formatDate(order.delivered_at)}</span> : null}
+             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+               <div>
+                 {closed ? (
+                   <>
+                     <div className="flex flex-wrap items-center gap-3">
+                       <h2 className="font-semibold">Mesa {order.table_number}</h2>
+                       <span className="text-sm text-[var(--muted)]"># {order.order_number}</span>
+                       <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium capitalize">
+                         {order.status}
+                       </span>
+                     </div>
+                     <p className="mt-1 text-sm text-[var(--muted)]">
+                       {formatDate(order.created_at)} · {order.item_count} ítem(s)
+                       {order.customer_name ? ` · ${order.customer_name}` : ""}
+                     </p>
+                   </>
+                 ) : (
+                   <div className="flex items-center gap-4">
+                     <h2 className="flex items-center gap-2 text-lg font-bold">
+                       <TableIcon className="h-6 w-6 shrink-0 text-orange-600" />
+                       {order.table_number}
+                     </h2>
+                     <div className="text-sm text-[var(--muted)]">
+                       <p>Pedido #{order.order_number}</p>
+                       <p>Abierto: {formatDate(order.created_at)}</p>
+                     </div>
+                   </div>
+                 )}
+                 {closed ? (
+                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
+                     {order.delivered_at ? <span>Entregado: {formatDate(order.delivered_at)}</span> : null}
                     {order.paid_at ? <span>Pagado: {formatDate(order.paid_at)}</span> : null}
                   </div>
                 ) : null}

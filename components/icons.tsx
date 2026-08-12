@@ -34,6 +34,16 @@ export function OrdersIcon({ className }: IconProps) {
   );
 }
 
+export function TableIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path d="M3 10h18v3H3z" fill="currentColor" />
+      <path d="m5 13-2 8h2l2-8M19 13l2 8h-2l-2-8" fill="currentColor" opacity=".75" />
+      <path d="M9 3h6v4a3 3 0 0 1-6 0V3Z" fill="currentColor" opacity=".45" />
+    </svg>
+  );
+}
+
 export function HistoryIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
