@@ -26,77 +26,6 @@ function formatMoney(value: number) {
   }).format(value);
 }
 
-function escapeHtml(value: string) {
-  return value.replace(/[&<>'"]/g, (character) => {
-    const entities: Record<string, string> = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      "'": "&#39;",
-      '"': "&quot;",
-    };
-    return entities[character];
-  });
-}
-
-function printKitchenTicket({
-  orderNumber,
-  tableNumber,
-  customerName,
-  lines,
-  target,
-}: {
-  orderNumber: string;
-  tableNumber: string;
-  customerName: string;
-  lines: DraftOrderLine[];
-  target?: Window | null;
-}) {
-  const printWindow = target ?? window.open("", "_blank", "width=420,height=650");
-  if (!printWindow) throw new Error("Permite las ventanas emergentes para imprimir la comanda.");
-
-  const items = lines
-    .filter((line) => line.queueType === "kitchen")
-    .map(
-      (line) =>
-        `<li><strong>${line.quantity} x</strong> ${escapeHtml(line.name)}</li>`,
-    )
-    .join("");
-
-  printWindow.document.write(`<!doctype html>
-    <html lang="es">
-      <head>
-        <meta charset="utf-8">
-        <title>Cocina #${escapeHtml(orderNumber)}</title>
-        <style>
-          @page { size: 80mm auto; margin: 4mm; }
-          * { box-sizing: border-box; }
-          body { width: 72mm; margin: 0; color: #111; font: 14px/1.35 Arial, sans-serif; }
-          h1 { margin: 0 0 8px; font-size: 22px; }
-          p { margin: 3px 0; }
-          ul { margin: 14px 0 0; padding: 0; list-style: none; }
-          li { border-top: 1px dashed #777; padding: 9px 0; font-size: 17px; }
-          .meta { font-size: 13px; }
-          .time { margin-top: 12px; font-size: 12px; color: #555; }
-        </style>
-      </head>
-      <body>
-        <h1>COCINA #${escapeHtml(orderNumber)}</h1>
-        <p><strong>Mesa:</strong> ${escapeHtml(tableNumber)}</p>
-        ${customerName ? `<p><strong>Cliente:</strong> ${escapeHtml(customerName)}</p>` : ""}
-        <ul>${items}</ul>
-        <p class="time">${new Intl.DateTimeFormat("es-BO", {
-          dateStyle: "short",
-          timeStyle: "short",
-        }).format(new Date())}</p>
-      </body>
-    </html>`);
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
-  printWindow.close();
-}
-
 export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -200,15 +129,6 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
       return;
     }
 
-    const kitchenLines = lines.filter((line) => line.queueType === "kitchen");
-    const printWindow = kitchenLines.length > 0
-      ? window.open("", "_blank", "width=420,height=650")
-      : null;
-    if (kitchenLines.length > 0 && !printWindow) {
-      setMessage("Permite las ventanas emergentes para imprimir la comanda.");
-      return;
-    }
-
     setSaving(true);
     setMessage(null);
 
@@ -248,20 +168,9 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
       });
       if (confirmError) throw confirmError;
 
-      if (printWindow) {
-        printKitchenTicket({
-          orderNumber: order.order_number,
-          tableNumber: tableNumber.trim(),
-          customerName: customerName.trim(),
-          lines: kitchenLines,
-          target: printWindow,
-        });
-      }
-
       router.push("/pedidos");
       router.refresh();
     } catch (error) {
-      printWindow?.close();
       setMessage(
         error instanceof Error ? error.message : "No se pudo confirmar el pedido.",
       );
