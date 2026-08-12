@@ -21,7 +21,7 @@ The project does not implement all lite-prd.md requirements. Core order creation
 - components/cafe/cafe-queue.tsx:36-45
 - components/kitchen/kitchen-queue.tsx:33-43
 - The sound implementation exists but will not normally play.
-6. Role restrictions are not enforced
+6. DONE Role restrictions are not enforced
 - supabase/migrations/0004_relax_rls_for_mvp.sql:21-101 allows any authenticated user to read and write menu, orders, payments, and print jobs.
 - components/app-shell.tsx:14-65 displays every navigation entry to every authenticated user.
 - This conflicts with the defined admin, staff, cook, and barista distinctions.
@@ -80,4 +80,4 @@ The project does not implement all lite-prd.md requirements. Core order creation
 - Add frontend/E2E coverage for the complete lifecycle and payment-detail flow.
 
 8. Deploy to production
-9. Update with real menu
+9. REVIEW WITH LUZ Update with real menu

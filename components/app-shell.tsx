@@ -34,10 +34,14 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    const supabase = createClient();
+
     async function loadRole() {
-      const supabase = createClient();
       const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
+      if (!userData.user) {
+        if (mounted) setRole(null);
+        return;
+      }
       const { data } = await supabase
         .from("profiles")
         .select("role")
@@ -45,8 +49,20 @@ export function AppShell({ children }: { children: ReactNode }) {
         .maybeSingle();
       if (mounted) setRole(data?.role ?? null);
     }
+
     void loadRole();
-    return () => { mounted = false; };
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      if (mounted) setRole(null);
+      setTimeout(() => {
+        if (mounted) void loadRole();
+      }, 0);
+    });
+
+    return () => {
+      mounted = false;
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   if (pathname === "/login") {

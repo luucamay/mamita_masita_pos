@@ -243,24 +243,27 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="font-semibold">#{order.order_number}</h2>
                   <span className="text-sm text-[var(--muted)]">Mesa {order.table_number}</span>
-                  <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium capitalize">
-                    {order.status}
-                  </span>
+                  {closed ? (
+                    <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium capitalize">
+                      {order.status}
+                    </span>
+                  ) : null}
                 </div>
-                 <p className="mt-1 text-sm text-[var(--muted)]">
-                   {formatDate(order.created_at)} · {order.item_count} ítem(s)
-                   {order.customer_name ? ` · ${order.customer_name}` : ""}
-                 </p>
-                 {closed ? (
-                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
-                     {order.delivered_at ? <span>Entregado: {formatDate(order.delivered_at)}</span> : null}
-                     {order.paid_at ? <span>Pagado: {formatDate(order.paid_at)}</span> : null}
-                   </div>
-                 ) : null}
-               </div>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {formatDate(order.created_at)}
+                  {closed ? ` · ${order.item_count} ítem(s)` : ""}
+                  {closed && order.customer_name ? ` · ${order.customer_name}` : ""}
+                </p>
+                {closed ? (
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
+                    {order.delivered_at ? <span>Entregado: {formatDate(order.delivered_at)}</span> : null}
+                    {order.paid_at ? <span>Pagado: {formatDate(order.paid_at)}</span> : null}
+                  </div>
+                ) : null}
+              </div>
               <div className="flex items-center justify-between gap-4 sm:justify-end">
-                <p className="font-semibold">{formatMoney(order.total)}</p>
-                 {!closed && !delivered ? (
+                {closed ? <p className="font-semibold">{formatMoney(order.total)}</p> : null}
+                {!closed && !delivered ? (
                    <button
                      type="button"
                      disabled={workingId === order.id}
