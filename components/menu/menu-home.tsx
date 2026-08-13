@@ -197,6 +197,10 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
     }
   }
 
+  function getItemQuantity(menuItemId: string) {
+    return lines.find((line) => line.menuItemId === menuItemId)?.quantity;
+  }
+
   return (
     <div className="flex min-h-screen">
       <section className="min-w-0 flex-1 px-6 py-5 pb-28 md:pb-5 lg:px-8">
@@ -281,14 +285,38 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
                         {formatMoney(item.price)}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      aria-label={`Agregar ${item.name}`}
-                      onClick={() => openPanelForItem(item)}
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-orange-500 text-white shadow-sm transition hover:bg-orange-600"
-                    >
-                      <PlusIcon className="h-5 w-5" />
-                    </button>
+                    {getItemQuantity(item.id) ? (
+                      <div className="flex shrink-0 items-center gap-2">
+                        <button
+                          type="button"
+                          aria-label={`Disminuir ${item.name}`}
+                          onClick={() => updateQuantity(item.id, -1)}
+                          className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
+                        >
+                          <MinusIcon className="h-4 w-4" />
+                        </button>
+                        <span className="min-w-5 text-center font-semibold">
+                          {getItemQuantity(item.id)}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label={`Agregar otro ${item.name}`}
+                          onClick={() => openPanelForItem(item)}
+                          className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-orange-700 hover:bg-orange-200"
+                        >
+                          <PlusIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        aria-label={`Agregar ${item.name}`}
+                        onClick={() => openPanelForItem(item)}
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-orange-500 text-white shadow-sm transition hover:bg-orange-600"
+                      >
+                        <PlusIcon className="h-5 w-5" />
+                      </button>
+                    )}
                   </article>
                 ))}
               </div>
