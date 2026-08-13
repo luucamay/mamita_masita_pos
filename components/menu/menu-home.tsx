@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CloseIcon,
@@ -28,6 +28,7 @@ function formatMoney(value: number) {
 
 export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
   const router = useRouter();
+  const linesRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
   const [activeCategoryId, setActiveCategoryId] = useState<string>("all");
   const [lines, setLines] = useState<DraftOrderLine[]>([]);
@@ -62,6 +63,13 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
     () => lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0),
     [lines],
   );
+
+  useEffect(() => {
+    const container = linesRef.current;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight });
+    }
+  }, [lines]);
 
   function openPanelForItem(item: MenuItem) {
     setPanelOpen(true);
@@ -277,12 +285,12 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
       </section>
 
       <aside
-        className={`border-l border-[var(--border)] bg-white transition-all ${
+        className={`sticky top-0 self-start border-l border-[var(--border)] bg-white transition-all ${
           panelOpen ? "w-full max-w-md" : "w-0 overflow-hidden border-l-0"
         }`}
       >
         {panelOpen ? (
-          <div className="flex h-full min-h-screen flex-col">
+          <div className="flex h-dvh flex-col">
             <div className="flex items-start justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
               <div>
                 <p className="text-xs font-medium tracking-wide text-[var(--muted)] uppercase">
@@ -307,7 +315,10 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
               </button>
             </div>
 
-            <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
+            <div
+              ref={linesRef}
+              className="flex-1 space-y-5 overflow-y-auto px-5 py-4"
+            >
               {needsDetails ? (
                 <div className="space-y-3 rounded-2xl bg-[var(--bg)] p-4">
                   <label className="block text-sm font-medium">
