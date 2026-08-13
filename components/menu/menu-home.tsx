@@ -63,6 +63,10 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
     () => lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0),
     [lines],
   );
+  const productCount = useMemo(
+    () => lines.reduce((sum, line) => sum + line.quantity, 0),
+    [lines],
+  );
 
   useEffect(() => {
     const container = linesRef.current;
@@ -72,7 +76,7 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
   }, [lines]);
 
   function openPanelForItem(item: MenuItem) {
-    setPanelOpen(true);
+    setPanelOpen(window.matchMedia("(min-width: 768px)").matches);
     setMessage(null);
 
     setLines((current) => {
@@ -188,7 +192,7 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
 
   return (
     <div className="flex min-h-screen">
-      <section className="min-w-0 flex-1 px-6 py-5 lg:px-8">
+      <section className="min-w-0 flex-1 px-6 py-5 pb-28 md:pb-5 lg:px-8">
         <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium text-[var(--muted)]">
@@ -285,13 +289,26 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
       </section>
 
       <aside
-        className={`sticky top-0 self-start border-l border-[var(--border)] bg-white transition-all ${
-          panelOpen ? "w-full max-w-md" : "w-0 overflow-hidden border-l-0"
+        className={`border-[var(--border)] bg-white transition-all ${
+          panelOpen
+            ? "fixed inset-0 z-50 w-full md:sticky md:top-0 md:right-auto md:inset-auto md:self-start md:w-full md:max-w-md md:border-l"
+            : "hidden md:sticky md:top-0 md:block md:self-start md:w-0 md:overflow-hidden md:border-l-0"
         }`}
       >
         {panelOpen ? (
           <div className="flex h-dvh flex-col">
             <div className="flex items-start justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setPanelOpen(false)}
+                className="-ml-2 flex items-center gap-1 rounded-xl px-2 py-2 text-sm font-semibold text-orange-600 hover:bg-orange-50 md:hidden"
+                aria-label="Volver al menú"
+              >
+                <span aria-hidden="true" className="text-xl leading-none">
+                  {"<"}
+                </span>
+                <span>Menú</span>
+              </button>
               <div>
                 <p className="text-xs font-medium tracking-wide text-[var(--muted)] uppercase">
                   Pedido actual
@@ -308,7 +325,7 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
               <button
                 type="button"
                 onClick={() => setPanelOpen(false)}
-                className="rounded-full p-2 text-[var(--muted)] hover:bg-gray-100"
+                className="hidden rounded-full p-2 text-[var(--muted)] hover:bg-gray-100 md:block"
                 aria-label="Cerrar panel"
               >
                 <CloseIcon className="h-5 w-5" />
@@ -442,6 +459,26 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
           </div>
         ) : null}
       </aside>
+
+      {!panelOpen && lines.length > 0 ? (
+        <div className="fixed right-0 bottom-0 left-0 z-40 border-t border-[var(--border)] bg-white px-4 py-3 shadow-[0_-4px_16px_rgba(17,24,39,0.08)] md:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-[var(--muted)]">
+                {productCount} {productCount === 1 ? "producto" : "productos"}
+              </p>
+              <p className="text-lg font-semibold">{formatMoney(subtotal)}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPanelOpen(true)}
+              className="rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white hover:bg-orange-600"
+            >
+              Ver pedido
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
