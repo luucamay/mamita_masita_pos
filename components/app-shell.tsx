@@ -31,6 +31,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     let mounted = true;
@@ -77,7 +82,20 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-[var(--bg)]">
-      <aside className="sticky top-0 flex h-screen w-[88px] flex-col items-center gap-3 bg-[var(--sidebar)] px-3 py-5 text-[var(--sidebar-text)]">
+      {mobileMenuOpen ? (
+        <button
+          type="button"
+          aria-label="Cerrar menú"
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-30 bg-black/30 md:hidden"
+        />
+      ) : null}
+      <aside
+        id="mobile-navigation"
+        className={`fixed inset-y-0 left-0 z-40 flex h-screen w-[88px] flex-col items-center gap-3 bg-[var(--sidebar)] px-3 py-5 text-[var(--sidebar-text)] transition-transform md:sticky md:inset-y-auto md:top-0 md:z-auto md:translate-x-0 md:transition-none ${
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500 text-lg font-bold">
           MM
         </div>
@@ -113,6 +131,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
                   className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-3 text-[11px] font-medium transition ${
                     active
                       ? "bg-white/15 text-white"
@@ -127,13 +146,31 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <button
           type="button"
-          onClick={handleLogout}
+          onClick={() => {
+            setMobileMenuOpen(false);
+            void handleLogout();
+          }}
           className="rounded-xl px-2 py-2 text-[10px] text-white/60 transition hover:bg-white/10 hover:text-white"
         >
           Salir
         </button>
       </aside>
-      <main className="min-w-0 flex-1">{children}</main>
+      <main className="min-w-0 flex-1">
+        <header className="flex items-center border-b border-[var(--border)] bg-[var(--surface)] px-4 py-3 md:hidden">
+          <button
+            type="button"
+            aria-label="Abrir menú"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-navigation"
+            onClick={() => setMobileMenuOpen(true)}
+            className="rounded-lg p-2 text-[var(--ink)] hover:bg-[var(--bg)]"
+          >
+            <MenuIcon className="h-6 w-6" />
+          </button>
+          <span className="ml-2 text-sm font-semibold">Mamita Masita</span>
+        </header>
+        {children}
+      </main>
     </div>
   );
 }

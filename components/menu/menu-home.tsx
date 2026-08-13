@@ -26,6 +26,13 @@ function formatMoney(value: number) {
   }).format(value);
 }
 
+function formatCategoryName(name: string) {
+  const normalizedName = name.trim().toLowerCase();
+  return normalizedName
+    ? `${normalizedName.charAt(0).toUpperCase()}${normalizedName.slice(1)}`
+    : name;
+}
+
 export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
   const router = useRouter();
   const linesRef = useRef<HTMLDivElement>(null);
@@ -211,11 +218,11 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
           </label>
         </header>
 
-        <div className="mb-6 flex flex-wrap gap-2">
+        <div className="mb-6 flex flex-nowrap gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible">
           <button
             type="button"
             onClick={() => setActiveCategoryId("all")}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${
               activeCategoryId === "all"
                 ? "bg-orange-500 text-white"
                 : "bg-white text-[var(--ink)] ring-1 ring-[var(--border)] hover:bg-orange-50"
@@ -228,13 +235,13 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
               key={category.id}
               type="button"
               onClick={() => setActiveCategoryId(category.id)}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+              className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${
                 activeCategoryId === category.id
                   ? "bg-orange-500 text-white"
                   : "bg-white text-[var(--ink)] ring-1 ring-[var(--border)] hover:bg-orange-50"
               }`}
             >
-              {category.name}
+              {formatCategoryName(category.name)}
             </button>
           ))}
         </div>
@@ -258,7 +265,9 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
           {itemsByCategory.map(({ category, items: categoryItems }) => (
             <section key={category.id}>
               <div className="mb-3 flex items-end justify-between">
-                <h2 className="text-lg font-semibold">{category.name}</h2>
+                <h2 className="text-lg font-semibold">
+                  {formatCategoryName(category.name)}
+                </h2>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {categoryItems.map((item) => (
