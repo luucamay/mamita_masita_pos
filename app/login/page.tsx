@@ -37,8 +37,12 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 py-8">
       <section className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-white p-7 shadow-xl shadow-orange-100/40 sm:p-9">
         <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500 font-bold text-white">
-            MM
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white p-1 shadow-sm ring-1 ring-[var(--border)]">
+            <img
+              src="/icons/icon-192.png"
+              alt="Mamita Masita"
+              className="h-full w-full object-contain"
+            />
           </div>
           <div>
             <p className="text-sm font-medium text-orange-600">Mamita Masita</p>

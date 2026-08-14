@@ -102,8 +102,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500 text-lg font-bold">
-          MM
+        <div className="mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white p-1 shadow-sm">
+          <img
+            src="/icons/icon-192.png"
+            alt="Mamita Masita"
+            className="h-full w-full object-contain"
+          />
         </div>
         {role ? (
           <div
@@ -173,6 +177,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <MenuIcon className="h-6 w-6" />
           </button>
+          <img
+            src="/icons/icon-192.png"
+            alt=""
+            className="ml-2 h-8 w-8 object-contain"
+          />
           <span className="ml-2 text-sm font-semibold">Mamita Masita</span>
         </header>
         {children}

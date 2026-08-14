@@ -32,14 +32,47 @@ export function CafeQueue({ initialItems }: { initialItems: CafeQueueItem[] }) {
   const [items, setItems] = useState(initialItems);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [soundReady, setSoundReady] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | null>(null);
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const soundEnabledRef = useRef(soundEnabled);
+  const roleRef = useRef(role);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const notifiedOrderIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
     soundEnabledRef.current = soundEnabled;
   }, [soundEnabled]);
+
+  useEffect(() => {
+    roleRef.current = role;
+  }, [role]);
+
+  useEffect(() => {
+    let mounted = true;
+    const supabase = createClient();
+
+    async function loadRole() {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userData.user.id)
+        .maybeSingle();
+      if (mounted) setRole(data?.role ?? null);
+    }
+
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setNotificationPermission(Notification.permission);
+    }
+    void loadRole();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -52,6 +85,17 @@ export function CafeQueue({ initialItems }: { initialItems: CafeQueueItem[] }) {
           if (payload.new.queue_type !== "cafe" || payload.new.status !== "pending") return;
           if (soundEnabledRef.current && audioContextRef.current?.state === "running") {
             playNotification(audioContextRef.current);
+          }
+          if (
+            roleRef.current === "barista" &&
+            notificationPermission === "granted" &&
+            !notifiedOrderIdsRef.current.has(payload.new.order_id)
+          ) {
+            notifiedOrderIdsRef.current.add(payload.new.order_id);
+            new Notification("Nuevo pedido de café", {
+              body: "Hay un pedido nuevo pendiente en la cola.",
+              tag: `cafe-order-${payload.new.order_id}`,
+            });
           }
           router.refresh();
         },
@@ -70,7 +114,7 @@ export function CafeQueue({ initialItems }: { initialItems: CafeQueueItem[] }) {
       window.clearInterval(refreshInterval);
       void supabase.removeChannel(channel);
     };
-  }, [router]);
+  }, [notificationPermission, router]);
 
   useEffect(() => {
     setItems(initialItems);
@@ -116,6 +160,18 @@ export function CafeQueue({ initialItems }: { initialItems: CafeQueueItem[] }) {
     setError(null);
   }
 
+  async function enableNotifications() {
+    if (!("Notification" in window)) {
+      setError("Este navegador no permite notificaciones.");
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+    if (permission !== "granted") {
+      setError("No se permitieron las notificaciones. Revisa los permisos del navegador.");
+    }
+  }
+
   const grouped = items.reduce<Map<string, CafeQueueItem[]>>((groups, item) => {
     const orderItems = groups.get(item.order_id) ?? [];
     orderItems.push(item);
@@ -127,13 +183,31 @@ export function CafeQueue({ initialItems }: { initialItems: CafeQueueItem[] }) {
     <div>
       {!soundReady ? (
         <div className="mb-4 flex items-center justify-between gap-4 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
-          <p className="text-sm text-orange-900">Activa el sonido para recibir una alerta cuando llegue un pedido nuevo.</p>
+          <p className="text-sm text-orange-900">
+            Activa el sonido para recibir una alerta cuando llegue un pedido nuevo.
+          </p>
           <button
             type="button"
             onClick={() => void enableSound()}
             className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-xs font-semibold text-white hover:bg-orange-700"
           >
             Activar sonido
+          </button>
+        </div>
+      ) : null}
+
+      {role === "barista" && notificationPermission !== "granted" ? (
+        <div className="mb-4 flex items-center justify-between gap-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+          <p className="text-sm text-blue-900">
+            Permite las notificaciones para enterarte de nuevos pedidos aunque esta pestaña esté en segundo plano.
+          </p>
+          <button
+            type="button"
+            onClick={() => void enableNotifications()}
+            disabled={notificationPermission === "denied"}
+            className="shrink-0 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {notificationPermission === "denied" ? "Bloqueadas" : "Activar notificaciones"}
           </button>
         </div>
       ) : null}
