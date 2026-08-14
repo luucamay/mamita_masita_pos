@@ -19,12 +19,14 @@ type MenuHomeProps = {
 };
 
 function formatMoney(value: number) {
-  return new Intl.NumberFormat("es-BO", {
-    style: "currency",
-    currency: "BOB",
-    minimumFractionDigits: 2,
-  }).format(value);
+  return moneyFormatter.format(value);
 }
+
+const moneyFormatter = new Intl.NumberFormat("es-BO", {
+  style: "currency",
+  currency: "BOB",
+  minimumFractionDigits: 2,
+});
 
 function formatCategoryName(name: string) {
   const normalizedName = name.trim().toLowerCase();
@@ -58,13 +60,25 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
   }, [activeCategoryId, items, search]);
 
   const itemsByCategory = useMemo(() => {
+    const itemsByCategoryId = new Map<string, MenuItem[]>();
+    for (const item of filteredItems) {
+      const categoryItems = itemsByCategoryId.get(item.category_id) ?? [];
+      categoryItems.push(item);
+      itemsByCategoryId.set(item.category_id, categoryItems);
+    }
+
     return categories
       .map((category) => ({
         category,
-        items: filteredItems.filter((item) => item.category_id === category.id),
+        items: itemsByCategoryId.get(category.id) ?? [],
       }))
       .filter((group) => group.items.length > 0);
   }, [categories, filteredItems]);
+
+  const quantitiesByItemId = useMemo(
+    () => new Map(lines.map((line) => [line.menuItemId, line.quantity])),
+    [lines],
+  );
 
   const subtotal = useMemo(
     () => lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0),
@@ -159,33 +173,21 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
       }
 
       const { data: createdOrder, error: createError } = await supabase.rpc(
-        "create_order",
+        "create_order_with_items",
         {
           p_table_number: tableNumber.trim(),
           p_customer_name: customerName.trim() || null,
           p_created_by: userData.user.id,
+          p_items: lines.map((line) => ({
+            menu_item_id: line.menuItemId,
+            quantity: line.quantity,
+          })),
         },
       );
       if (createError) throw createError;
 
       const order = Array.isArray(createdOrder) ? createdOrder[0] : createdOrder;
       if (!order?.order_id) throw new Error("No se pudo crear el pedido.");
-
-      for (const line of lines) {
-        const { error: itemError } = await supabase.rpc("add_order_item", {
-          p_order_id: order.order_id,
-          p_menu_item_id: line.menuItemId,
-          p_quantity: line.quantity,
-          p_created_by: userData.user.id,
-        });
-        if (itemError) throw itemError;
-      }
-
-      const { error: confirmError } = await supabase.rpc("confirm_order", {
-        p_order_id: order.order_id,
-        p_confirmed_by: userData.user.id,
-      });
-      if (confirmError) throw confirmError;
 
       router.push("/pedidos");
       router.refresh();
@@ -195,10 +197,6 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
       );
       setSaving(false);
     }
-  }
-
-  function getItemQuantity(menuItemId: string) {
-    return lines.find((line) => line.menuItemId === menuItemId)?.quantity;
   }
 
   return (
@@ -285,7 +283,7 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
                         {formatMoney(item.price)}
                       </p>
                     </div>
-                    {getItemQuantity(item.id) ? (
+                    {quantitiesByItemId.get(item.id) ? (
                       <div className="flex shrink-0 items-center gap-2">
                         <button
                           type="button"
@@ -296,7 +294,7 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
                           <MinusIcon className="h-4 w-4" />
                         </button>
                         <span className="min-w-5 text-center font-semibold">
-                          {getItemQuantity(item.id)}
+                          {quantitiesByItemId.get(item.id)}
                         </span>
                         <button
                           type="button"

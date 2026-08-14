@@ -38,27 +38,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (data?.claims && isLoginPage) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", String(data.claims.sub))
-      .maybeSingle();
-    const destination =
-      profile?.role === "barista"
-        ? "/cafe"
-        : profile?.role === "cook"
-          ? "/cocina"
-          : "/";
-    return NextResponse.redirect(new URL(destination, request.url));
-  }
-
   if (data?.claims) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role, active")
       .eq("id", String(data.claims.sub))
       .maybeSingle();
+
+    if (isLoginPage) {
+      const destination =
+        profile?.role === "barista"
+          ? "/cafe"
+          : profile?.role === "cook"
+            ? "/cocina"
+            : "/";
+      return NextResponse.redirect(new URL(destination, request.url));
+    }
 
     if (profile?.role === "barista" && request.nextUrl.pathname !== "/cafe") {
       return NextResponse.redirect(new URL("/cafe", request.url));
