@@ -9,7 +9,8 @@ begin
     raise exception 'only active admins can clear order history';
   end if;
 
-  delete from public.orders;
+  delete from public.orders
+  where id is not null;
 end;
 $$;
 
