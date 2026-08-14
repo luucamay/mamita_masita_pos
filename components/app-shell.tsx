@@ -21,11 +21,11 @@ const navItems = [
   { href: "/menu-admin", label: "Admin menú", icon: SettingsIcon },
 ];
 
-const roleLabels: Record<string, string> = {
-  admin: "Admin",
-  barista: "Barista",
-  cook: "Cook",
-  staff: "Staff",
+const roleMarkers: Record<string, string> = {
+  admin: "A",
+  barista: "b",
+  cafe: "c",
+  cook: "c",
 };
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -102,24 +102,20 @@ export function AppShell({ children }: { children: ReactNode }) {
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white p-1 shadow-sm">
-          <img
-            src="/icons/icon-192.png"
-            alt="Mamita Masita"
-            className="h-full w-full object-contain"
-          />
+        <div
+          aria-label={role ? `Perfil: ${role}` : "Mamita Masita"}
+          className="mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white p-1 text-2xl font-bold text-[var(--sidebar)] shadow-sm"
+        >
+          {roleMarkers[role ?? ""] ? (
+            roleMarkers[role ?? ""]
+          ) : (
+            <img
+              src="/icons/icon-192.png"
+              alt="Mamita Masita"
+              className="h-full w-full object-contain"
+            />
+          )}
         </div>
-        {role ? (
-          <div
-            aria-label={`Rol: ${roleLabels[role] ?? role}`}
-            className="mb-2 flex w-full flex-col items-center rounded-xl bg-white/10 px-1 py-2 text-center"
-          >
-            <span className="text-[9px] uppercase tracking-wider text-white/50">Rol</span>
-            <span className="mt-0.5 text-[10px] font-semibold text-white">
-              {roleLabels[role] ?? role}
-            </span>
-          </div>
-        ) : null}
         <nav className="flex w-full flex-1 flex-col gap-2">
           {navItems
             .filter((item) => role !== null)
