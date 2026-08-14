@@ -9,6 +9,7 @@ import {
   OrdersIcon,
   SettingsIcon,
 } from "@/components/icons";
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { createClient } from "@/lib/supabase/client";
 
 const navItems = [
@@ -71,7 +72,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   if (pathname === "/login") {
-    return <>{children}</>;
+    return (
+      <>
+        {children}
+        <PwaInstallPrompt />
+      </>
+    );
   }
 
   async function handleLogout() {
@@ -171,6 +177,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
         {children}
       </main>
+      <PwaInstallPrompt />
     </div>
   );
 }
