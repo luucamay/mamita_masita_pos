@@ -272,11 +272,10 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
                      {order.delivered_at ? <span>Entregado: {formatDate(order.delivered_at)}</span> : null}
                     {order.paid_at ? <span>Pagado: {formatDate(order.paid_at)}</span> : null}
                   </div>
-                ) : null}
-              </div>
-              <div className="flex items-center justify-between gap-4 sm:justify-end">
-                {closed ? <p className="font-semibold">{formatMoney(order.total)}</p> : null}
-                {!closed && !delivered ? (
+               ) : null}
+               </div>
+               <div className="flex items-center justify-between gap-4 sm:justify-end">
+                 {!closed && !delivered ? (
                    <button
                      type="button"
                      disabled={workingId === order.id}
@@ -287,10 +286,10 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
                     className="rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60"
                   >
                     {workingId === order.id ? "Guardando..." : "Entregado"}
-                  </button>
-                 ) : !closed && paymentOrderId === order.id ? (
-                  <div className="flex flex-wrap justify-end gap-2">
-                    {(["cash", "qr", "card"] as PaymentMethod[]).map((method) => (
+                   </button>
+                  ) : !closed && paymentOrderId === order.id ? (
+                   <div className="flex flex-wrap justify-end gap-2">
+                     {(["cash", "qr"] as PaymentMethod[]).map((method) => (
                       <button
                         key={method}
                        type="button"
@@ -301,23 +300,28 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
                        }}
                         className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold hover:bg-gray-50 disabled:opacity-60"
                       >
-                        {method === "cash" ? "Efectivo" : method === "qr" ? "QR" : "Tarjeta"}
+                         {paymentLabels[method]}
                       </button>
                     ))}
                   </div>
-                 ) : !closed ? (
+                  ) : !closed ? (
                    <button
-                   type="button"
-                   onClick={(event) => {
-                     event.stopPropagation();
-                     setPaymentOrderId(order.id);
-                   }}
-                    className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold hover:bg-gray-50"
-                  >
-                    Pagar
+                     type="button"
+                     onClick={(event) => {
+                       event.stopPropagation();
+                       setPaymentOrderId(order.id);
+                     }}
+                     className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold hover:bg-gray-50"
+                   >
+                     Pagar
                    </button>
+                  ) : null}
+                 {closed || delivered ? (
+                   <p className={closed ? "font-semibold" : "text-lg font-bold"}>
+                     {formatMoney(order.total)}
+                   </p>
                  ) : null}
-              </div>
+               </div>
             </div>
            </article>
          );
@@ -435,7 +439,7 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
                       <div>
                         <p className="mb-2 text-sm font-semibold">Tipo de pago</p>
                         <div className="flex flex-wrap gap-2">
-                          {(["cash", "qr", "card"] as PaymentMethod[]).map((method) => (
+                           {(["cash", "qr"] as PaymentMethod[]).map((method) => (
                             <button
                               key={method}
                               type="button"
@@ -447,7 +451,7 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
                                   : "border-gray-300 bg-white"
                               }`}
                             >
-                              {method === "cash" ? "Efectivo" : method === "qr" ? "QR" : "Tarjeta"}
+                               {paymentLabels[method]}
                             </button>
                           ))}
                         </div>
