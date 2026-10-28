@@ -1,4 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
+import { assertE2EAllowed, loadLocalEnvironment } from "./scripts/environment.cjs";
+
+loadLocalEnvironment();
+assertE2EAllowed();
 
 export default defineConfig({
   testDir: "./e2e",

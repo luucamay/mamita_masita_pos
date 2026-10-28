@@ -6,7 +6,7 @@ const password = process.env.E2E_PASSWORD;
 test("completes an order and verifies payment details", async ({ page }) => {
   test.skip(!email || !password, "Set E2E_EMAIL and E2E_PASSWORD for an authenticated E2E run");
 
-  const customer = `E2E ${Date.now()}`;
+  const customer = `${process.env.MAMITA_TEST_RUN_ID} ${Date.now()}`;
   const table = String(Math.floor(Math.random() * 900) + 100);
 
   await page.goto("/login?next=/");

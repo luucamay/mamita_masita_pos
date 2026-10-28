@@ -6,6 +6,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "check:env": "node scripts/check-environment.mjs",
+    "test:preparacion": "node --test scripts/environment.test.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {
