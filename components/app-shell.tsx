@@ -59,8 +59,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
     void loadRole();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
-      if (mounted) setRole(null);
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      // loadRole already covers the initial session. Do not repeat its two calls.
+      if (event === "INITIAL_SESSION") return;
+      if (event === "SIGNED_OUT") {
+        if (mounted) setRole(null);
+        return;
+      }
       setTimeout(() => {
         if (mounted) void loadRole();
       }, 0);
@@ -131,6 +136,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={active ? "page" : undefined}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-3 text-[11px] font-medium transition ${
                     active

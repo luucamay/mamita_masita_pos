@@ -18,10 +18,13 @@ for (const { role, home } of [{ role: "STAFF", home: "/" }, { role: "COOK", home
   test(`${role} cannot read administration or export routes`, async ({ page }) => {
     await login(page, role);
     await expect(page).toHaveURL(new RegExp(`${home}$`));
-    for (const route of ["/menu-admin", "/historial", "/historial/export?period=daily"]) {
+    for (const route of ["/menu-admin", "/historial"]) {
       await page.goto(route);
       await expect(page).toHaveURL(new RegExp(`${home}$`));
     }
+    const exportResponse = await page.request.get("/historial/export?period=daily");
+    expect(exportResponse.status()).toBe(403);
+    expect(exportResponse.headers()["content-disposition"]).toBeUndefined();
     await expect(page.getByRole("link", { name: "Admin menú", exact: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Historial", exact: true })).toHaveCount(0);
   });

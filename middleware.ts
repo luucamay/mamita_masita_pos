@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { canAccessPath, homeForRole, isActiveProfile } from "@/lib/permissions";
+import { homeForRole, isActiveProfile } from "@/lib/permissions";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -51,7 +51,10 @@ export async function middleware(request: NextRequest) {
     return redirectTo(url);
   }
 
-  if (data?.claims) {
+  // Protected pages and export handlers enforce fresh user/profile permissions
+  // through getActiveAccess/requireRoles. Avoid repeating that DB query here.
+  // Only /login needs a role lookup to redirect an already signed-in account.
+  if (data?.claims && isLoginPage) {
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("role, active")
@@ -59,12 +62,9 @@ export async function middleware(request: NextRequest) {
       .maybeSingle();
 
     if (profileError || !isActiveProfile(profile)) {
-      if (isLoginPage) return response;
-      return redirectTo(new URL("/login?reason=inactive", request.url));
+      return response;
     }
-    if (isLoginPage || !canAccessPath(profile, request.nextUrl.pathname)) {
-      return redirectTo(new URL(homeForRole(profile.role), request.url));
-    }
+    return redirectTo(new URL(homeForRole(profile.role), request.url));
   }
 
   return response;

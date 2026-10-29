@@ -1,0 +1,87 @@
+{
+  "label": "after",
+  "origin": "http://localhost:3000",
+  "measuredAt": "2026-10-29T15:11:54.534Z",
+  "method": "desktop Chrome, QA admin, sidebar click to page heading, 1 cold + 2 warm rounds; real network varies",
+  "samples": [
+    {
+      "round": 1,
+      "path": "/cocina",
+      "milliseconds": 2236
+    },
+    {
+      "round": 1,
+      "path": "/cafe",
+      "milliseconds": 4149
+    },
+    {
+      "round": 1,
+      "path": "/pedidos",
+      "milliseconds": 3923
+    },
+    {
+      "round": 1,
+      "path": "/menu-admin",
+      "milliseconds": 1803
+    },
+    {
+      "round": 2,
+      "path": "/cocina",
+      "milliseconds": 1313
+    },
+    {
+      "round": 2,
+      "path": "/cafe",
+      "milliseconds": 1297
+    },
+    {
+      "round": 2,
+      "path": "/pedidos",
+      "milliseconds": 1451
+    },
+    {
+      "round": 2,
+      "path": "/menu-admin",
+      "milliseconds": 1286
+    },
+    {
+      "round": 3,
+      "path": "/cocina",
+      "milliseconds": 1242
+    },
+    {
+      "round": 3,
+      "path": "/cafe",
+      "milliseconds": 1187
+    },
+    {
+      "round": 3,
+      "path": "/pedidos",
+      "milliseconds": 1211
+    },
+    {
+      "round": 3,
+      "path": "/menu-admin",
+      "milliseconds": 1119
+    }
+  ],
+  "summary": [
+    {
+      "path": "/cocina",
+      "warmMeanMs": 1278
+    },
+    {
+      "path": "/cafe",
+      "warmMeanMs": 1242
+    },
+    {
+      "path": "/pedidos",
+      "warmMeanMs": 1331
+    },
+    {
+      "path": "/menu-admin",
+      "warmMeanMs": 1203
+    }
+  ],
+  "businessMutations": 0
+}

@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:qa": "node scripts/build-qa.mjs",
     "start": "next start",
     "lint": "next lint",
     "check:env": "node scripts/check-environment.mjs",
@@ -11,6 +12,7 @@
     "test:p01": "node --experimental-strip-types --test tests/permissions.test.ts tests/money.test.ts",
     "test:p01:db": "node scripts/test-p01-database.mjs",
     "test:p01:access": "playwright test --config playwright.access.config.ts",
+    "test:p02": "playwright test --config playwright.p02.config.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

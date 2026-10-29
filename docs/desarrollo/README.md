@@ -24,3 +24,5 @@ El 29/10 se verificó el acceso administrativo Auth y se crearon cinco cuentas Q
 Omar autorizó comenzar P01 preparando código y pruebas locales sin esperar PostgreSQL/Vercel login. La migración de producción sigue pendiente del respaldo; Vercel se verificará antes de publicar. Ver [implementación, matriz y pruebas de P01](P01_PERMISOS_INTEGRIDAD_IMPORTES.md). La prueba SQL usa PostgreSQL temporal con datos ficticios; no requiere instalar el stack Supabase local.
 
 En el workspace original: `PROYECTO/PLAN_MAESTRO_IMPLEMENTACION.md` contiene el orden y los controles; `SUPABASE/PREPARACION_DESARROLLO_2026-10-27.md` registra esta preparación. Los respaldos privados están fuera del repositorio oficial y no deben copiarse a Git.
+
+P02 añade búsqueda del catálogo y revisión de navegación. Ver [alcance, medidas y guía](P02_BUSCADOR_Y_NAVEGACION.md). Para probar sin interferir con `pnpm dev`: `pnpm build:qa` y `pnpm test:p02`; se usa `.next-qa` y se bloquean escrituras reales de catálogo en las pruebas. La migración P01 sigue pendiente de aplicación.
