@@ -6,7 +6,7 @@
 | Tarjetas | Avatar con iniciales, nombre, correo, rol y estado |
 | Alta | Nombre, correo, rol y contraseña inicial; API de servidor y Admin Auth API |
 | Baja | Desactivar y reactivar, sin borrar identidad ni historial, confirmado por Omar |
-| Base | `20261029160502_p05_employee_access.sql`, depende de P01; NO aplicada remotamente |
+| Base | `20261029163809_p05_employee_access.sql`, aplicada después de P01/P04 el 29/10 con autorización de Omar |
 | Pruebas | 22 grupos SQL acumulados, 7 de lógica P05 y 4 de navegador aprobados |
 
 ## Comportamiento y archivos
@@ -25,8 +25,8 @@ Desactivar solo cambia `profiles.active`. P01 consulta el perfil activo en las o
 
 ## Verificación
 
-1. **Ahora:** como admin, abrir `/empleados`: debe verse aviso de módulo no habilitado y Agregar deshabilitado mientras la base compartida no tenga P01/P05. Staff/Cocina/Barista no ven el acceso ni pueden usar la API.
-2. **Después de habilitar un entorno de escritura:** abrir Empleados como admin y comprobar nombre, correo, rol, avatar y estado en cada tarjeta.
+1. **Ahora:** como admin, abrir `/empleados`: debe cargar el equipo y permitir Agregar. Staff/Cocina/Barista no ven el acceso ni pueden usar la API.
+2. Comprobar nombre, correo, rol, avatar y estado en cada tarjeta. Usar exclusivamente cuentas ficticias identificadas para las pruebas siguientes.
 3. Agregar una cuenta ficticia con correo exclusivo y contraseña de al menos 12 caracteres, letras y números. Cerrar sesión e ingresar con esa cuenta; verificar rutas según rol.
 4. En otra sesión de admin, desactivar esa cuenta ficticia. Su sesión previa debe perder lectura/operaciones; sus pedidos históricos deben conservarse.
 5. Reactivarla e ingresar con el mismo correo/contraseña; no debe crearse un segundo perfil.
@@ -39,8 +39,8 @@ Las pruebas SQL se ejecutaron en PostgreSQL 17 temporal con datos sintéticos. L
 
 ## Pendiente antes de publicar
 
-Resolver recuperación, revisar divergencias del esquema, aplicar P01 y P05 por el procedimiento acordado y probar el ciclo real Auth/perfil con identidades ficticias. Verificar clave administrativa de servidor en el destino Vercel. No hubo migración, push ni despliegue. No se afirma integración remota aprobada por las pruebas simuladas.
+Omar autorizó posteriormente aplicar las migraciones para pruebas. Se guardó una copia nueva de public y metadatos de funciones/permisos; P01/P04/P05 quedaron aplicadas. El alta real de una cuenta QA desde la app, su acceso, desactivación con sesión abierta y reactivación con las mismas credenciales pasaron. La cuenta se conserva inactiva. Ver [aplicación y evidencia](APLICACION_SUPABASE_2026-10-29.md). Antes de publicar queda resolver recuperación integral y comprobar la configuración de servidor en Vercel; no hubo push ni despliegue.
 
-Se consultaron los asesores de seguridad remotos en lectura: conservan los hallazgos del esquema anterior, entre ellos [vista con privilegios del creador](https://supabase.com/docs/guides/database/database-linter?lint=0010_security_definer_view), [funciones privilegiadas ejecutables por anónimos](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable) y [search_path mutable](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable). La corrección P01 está preparada localmente. Ese informe remoto no inspecciona las funciones nuevas aún no aplicadas; sus permisos se verificaron en el PostgreSQL temporal.
+Antes de aplicar, los asesores remotos mostraban hallazgos por vista con privilegios del creador, funciones privilegiadas públicas y search_path mutable. Tras aplicar P01/P04/P05 esos hallazgos desaparecieron. Persisten los avisos informativos de RLS sin políticas en tablas sin acceso directo y la protección de contraseñas filtradas deshabilitada; ver el informe de aplicación enlazado arriba.
 
 Referencias oficiales consultadas el 29/10/2026: [createUser](https://supabase.com/docs/reference/javascript/auth-admin-createuser), [listUsers](https://supabase.com/docs/reference/javascript/auth-admin-listusers) y [changelog](https://supabase.com/changelog). El cambio TLS anunciado para noviembre no modifica las firmas usadas; Node 22 emplea TLS moderno. La autorización toma el perfil vigente en PostgreSQL, sin depender de `user_metadata`.

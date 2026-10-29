@@ -4,7 +4,7 @@
 
 Use `pnpm test:p01:db` for the current authorization/checkout contract, in a temporary localhost PostgreSQL cluster with synthetic fixtures. The original SQL tests below describe the earlier MVP and include direct writes that P01 intentionally prohibits. Never load the original seed into the shared production database.
 
-Migration `20261029122749_p01_permissions_integrity_amounts.sql` is prepared locally and has not been applied to the shared project. See [P01 implementation and deployment order](../docs/desarrollo/P01_PERMISOS_INTEGRIDAD_IMPORTES.md). This frontend requires the migration before real checkout.
+Migrations P01 (`20261029163703`), P04 (`20261029163747`) and P05 (`20261029163809`) were applied to the shared project on October 29 with Omar's explicit authorization. Local filenames match the versions recorded by the Supabase connector. See [application, scoped tests and remaining recovery limitations](../docs/desarrollo/APLICACION_SUPABASE_2026-10-29.md). Do not reapply these migrations or replay earlier migrations against the existing shared project.
 
 ## Files
 
@@ -15,7 +15,7 @@ Migration `20261029122749_p01_permissions_integrity_amounts.sql` is prepared loc
 - `tests/02_reporting.sql`: report-view smoke test.
 - `tests/03_roles.sql`: explicit admin, staff, cook, and barista permissions.
 
-## Intended Run Order
+## Original MVP Run Order — fresh disposable databases only
 
 1. Apply the migration.
 2. Load the seed.

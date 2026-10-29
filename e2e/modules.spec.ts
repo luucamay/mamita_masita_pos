@@ -183,11 +183,17 @@ test("P05 staff cannot see employees or call the administrative API", async ({ p
   expect(response.status()).toBe(403); expect(response.headers()["cache-control"]).toContain("no-store");
 });
 
-test("P05 legacy shared database blocks administration before using the secret key", async ({ page }) => {
+test("P05 reflects database readiness and rejects cross-site requests", async ({ page }) => {
   await login(page, "ADMIN", "/empleados");
-  await expect(page.locator('p[role="alert"]')).toContainText("todavía no está habilitada");
-  await expect(page.getByRole("button", { name: "Agregar empleado", exact: true })).toBeDisabled();
-  const response = await page.request.get("/api/employees"); expect(response.status()).toBe(503);
+  const response = await page.request.get("/api/employees");
+  if (response.status() === 503) {
+    await expect(page.locator('p[role="alert"]')).toBeVisible();
+    await expect(page.getByRole("button", { name: "Agregar empleado", exact: true })).toBeDisabled();
+  } else {
+    expect(response.status()).toBe(200);
+    expect(Array.isArray((await response.json()).employees)).toBe(true);
+    await expect(page.getByRole("button", { name: "Agregar empleado", exact: true })).toBeEnabled();
+  }
   const crossSite = await page.request.post("/api/employees", { headers: { Origin: "https://unrelated.example" }, data: {} });
   expect(crossSite.status()).toBe(403);
 });

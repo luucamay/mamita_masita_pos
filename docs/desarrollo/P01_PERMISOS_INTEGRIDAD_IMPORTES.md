@@ -3,11 +3,11 @@
 | Dato | Estado al 29/10/2026 |
 | --- | --- |
 | Rama | `desarrollo/mejoras-octubre-2026` |
-| Implementación | Código y migración preparados localmente |
-| Migración | `supabase/migrations/20261029122749_p01_permissions_integrity_amounts.sql` |
-| Base compartida | No se aplicó P01 ni se hicieron ventas de prueba |
+| Implementación | Código en rama; migración aplicada al Supabase compartido con autorización de Omar |
+| Migración | `supabase/migrations/20261029163703_p01_permissions_integrity_amounts.sql` |
+| Base compartida | Aplicada el 29/10; ciclo SQL real probado y revertido, sin ventas de prueba persistentes |
 | Publicación | No se hizo push ni despliegue |
-| Cierre de P01 | Pendiente de aplicación y validación por Data API en un destino con recuperación resuelta, y aceptación de Omar |
+| Cierre de P01 | Lecturas/permisos de app y ciclo SQL remoto comprobados; aceptación de Omar y recuperación integral siguen pendientes |
 
 ## Alcance implementado
 
@@ -37,7 +37,7 @@ La administración de empleados mediante operaciones seguras del servidor perten
 
 Las implementaciones con privilegios están en `private`, con `search_path` vacío y nombres de objetos completos. Los wrappers públicos usan `SECURITY INVOKER`; se revocan funciones internas y la operación global `clear_order_history`. Las vistas usan `security_invoker=true`. La pantalla deja de ofrecer “Vaciar historial”. El esquema `private` debe mantenerse fuera de los esquemas expuestos por Data API, como en la configuración local actual. Los permisos de SQL de sus funciones también limitan su uso directo.
 
-El advisor remoto sigue reflejando la base anterior: incluye el aviso por [vista con privilegios de su propietario](https://supabase.com/docs/guides/database/database-linter?lint=0010_security_definer_view). La corrección está preparada; no se presenta como resuelta en producción hasta aplicar P01 y revisar nuevamente los advisors.
+Tras aplicar P01 se revisaron nuevamente los asesores remotos: desaparecieron los hallazgos por vistas con privilegios del propietario, funciones privilegiadas públicas y search_path mutable. Persisten la configuración de protección contra contraseñas filtradas y avisos informativos de RLS sin políticas en tablas sin acceso directo. Detalle y límites del respaldo: [aplicación remota](APLICACION_SUPABASE_2026-10-29.md).
 
 ## Cobro y concurrencia
 
