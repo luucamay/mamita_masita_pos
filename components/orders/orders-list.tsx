@@ -128,7 +128,7 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
       return;
     }
 
-    const { error: paymentError } = await supabase.rpc("register_payment", {
+    const { error: paymentError } = await supabase.rpc("checkout_order", {
       p_order_id: orderId,
       p_payment_method: method,
       p_received_by: userData.user.id,
@@ -139,19 +139,12 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
       return;
     }
 
-    const { error: archiveError } = await supabase.rpc("archive_order", {
-      p_order_id: orderId,
-      p_archived_by: userData.user.id,
-    });
-    if (archiveError) setError(archiveError.message);
-    else {
-      setPaymentOrderId(null);
-      setSelectedPaymentMethod(null);
-      setSelectedOrder((current) =>
-        current?.id === orderId ? { ...current, status: "pagado" } : current,
-      );
-      router.refresh();
-    }
+    setPaymentOrderId(null);
+    setSelectedPaymentMethod(null);
+    setSelectedOrder((current) =>
+      current?.id === orderId ? { ...current, status: "archivado", payment_method: method } : current,
+    );
+    router.refresh();
     setWorkingId(null);
   }
 

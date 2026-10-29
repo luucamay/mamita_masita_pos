@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { isActiveProfile, safeLoginDestination } from "@/lib/permissions";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,19 +18,26 @@ export default function LoginPage() {
     setError(null);
 
     const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
 
-    if (signInError) {
+    if (signInError || !sessionData.user) {
       setError("Correo o contraseña incorrectos.");
       setLoading(false);
       return;
     }
 
-    const next = new URL(window.location.href).searchParams.get("next") || "/";
-    router.replace(next);
+    const { data: profile, error: profileError } = await supabase.from("profiles").select("role,active").eq("id", sessionData.user.id).maybeSingle();
+    if (profileError || !isActiveProfile(profile)) {
+      await supabase.auth.signOut({ scope: "local" });
+      setError("Tu cuenta no tiene acceso activo. Contacta a la administradora.");
+      setLoading(false);
+      return;
+    }
+    const next = new URL(window.location.href).searchParams.get("next");
+    router.replace(safeLoginDestination(next, profile));
     router.refresh();
   }
 

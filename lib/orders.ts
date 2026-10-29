@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireRoles } from "@/lib/auth";
 import type { OpenOrder } from "@/lib/types";
 
 export async function getOpenOrders(): Promise<{
   orders: OpenOrder[];
   error: string | null;
 }> {
+  await requireRoles(["admin", "staff"]);
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("v_open_orders")
@@ -29,6 +31,7 @@ export async function getClosedOrders(): Promise<{
   orders: OpenOrder[];
   error: string | null;
 }> {
+  await requireRoles(["admin", "staff"]);
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("v_order_detail")

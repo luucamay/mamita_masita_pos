@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireRoles } from "@/lib/auth";
 import type { KitchenQueueItem } from "@/lib/types";
 
 export async function getKitchenQueue(): Promise<{
   items: KitchenQueueItem[];
   error: string | null;
 }> {
+  await requireRoles(["admin", "staff", "cook"]);
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("v_kitchen_tickets")

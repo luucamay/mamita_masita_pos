@@ -1,4 +1,19 @@
 export type QueueType = "kitchen" | "cafe";
+export type PurchaseType = "customer" | "employee";
+// PostgreSQL numeric values may arrive as decimal strings. Convert using lib/money.
+export type OrderAmounts = {
+  subtotal: number | string;
+  discount_bps: number;
+  discount_amount: number | string;
+  total: number | string;
+  purchase_type: PurchaseType;
+  buyer_employee_id: string | null;
+};
+export type LineAmounts = {
+  line_total: number | string;
+  discount_amount: number | string;
+  net_total: number | string;
+};
 export type OrderStatus =
   | "pendiente"
   | "confirmado"

@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { createSalesReportCsv, reportCsvFilename } from "@/lib/report-csv";
 import { getSalesReport, type ReportPeriod } from "@/lib/reports";
+import { getActiveAccess } from "@/lib/auth";
 
 function isReportPeriod(value: string | null): value is ReportPeriod {
   return value === "daily" || value === "weekly" || value === "monthly";
 }
 
 export async function GET(request: Request) {
+  const access = await getActiveAccess();
+  if (!access || access.profile.role !== "admin") return NextResponse.json({ error: "Acceso no autorizado" }, { status: access ? 403 : 401 });
   const period = new URL(request.url).searchParams.get("period");
 
   if (!isReportPeriod(period)) {

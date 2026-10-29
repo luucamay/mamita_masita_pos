@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { ClearHistoryButton } from "@/components/history/clear-history-button";
 import { getSalesReport, type ReportPeriod } from "@/lib/reports";
-import { createClient } from "@/lib/supabase/server";
 
 const periods: { value: ReportPeriod; label: string }[] = [
   { value: "daily", label: "Diario" },
@@ -46,15 +44,7 @@ export default async function HistorialPage({
   const requestedPeriod = (await searchParams).period;
   const period: ReportPeriod =
     requestedPeriod === "weekly" || requestedPeriod === "monthly" ? requestedPeriod : "daily";
-  const supabase = await createClient();
-  const [{ data: userData }, { rows, error }] = await Promise.all([
-    supabase.auth.getUser(),
-    getSalesReport(period),
-  ]);
-  const { data: profile } = userData.user
-    ? await supabase.from("profiles").select("role, active").eq("id", userData.user.id).maybeSingle()
-    : { data: null };
-  const isAdmin = profile?.role === "admin" && profile.active === true;
+  const { rows, error } = await getSalesReport(period);
   const totalSales = rows.reduce((sum, row) => sum + row.total_sale_value, 0);
   const totalQuantity = rows.reduce((sum, row) => sum + row.quantity, 0);
 
@@ -91,7 +81,6 @@ export default async function HistorialPage({
         >
           Exportar CSV
         </a>
-        {isAdmin ? <ClearHistoryButton /> : null}
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">

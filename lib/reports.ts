@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireRoles } from "@/lib/auth";
 
 export type ReportPeriod = "daily" | "weekly" | "monthly";
 
@@ -22,6 +23,7 @@ export async function getSalesReport(period: ReportPeriod): Promise<{
   rows: SalesReportRow[];
   error: string | null;
 }> {
+  await requireRoles(["admin"]);
   const supabase = await createClient();
   const { data, error } = await supabase
     .from(reportViews[period])

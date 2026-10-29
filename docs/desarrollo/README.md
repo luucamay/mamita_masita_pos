@@ -19,6 +19,8 @@ Playwright carga la configuración local y rechaza pruebas contra la base compar
 
 El prefijo identifica clientes de prueba; no autoriza borrar por coincidencias de nombre. Guardar los IDs creados y limpiar exclusivamente esos registros, nunca usar `clear_order_history`, reset ni cargar el seed original sobre producción.
 
-No se crearon cuentas de prueba, pedidos, migraciones ni cambios de roles durante la preparación. Falta completar respaldo integral y acceso de pruebas antes de iniciar los módulos. No poner claves administrativas en variables `NEXT_PUBLIC_`.
+El 29/10 se verificó el acceso administrativo Auth y se crearon cinco cuentas QA con perfiles admin, staff, cook, barista y staff inactivo. Login y lectura de perfil propio comprobados con la clave pública; credenciales por rol en `.env.test.local` y manifiesto privado fuera del repositorio. No se crearon pedidos ni se aplicaron migraciones en la base compartida. Las pruebas de ventas siguen deshabilitadas. No poner claves administrativas en variables `NEXT_PUBLIC_`.
+
+Omar autorizó comenzar P01 preparando código y pruebas locales sin esperar PostgreSQL/Vercel login. La migración de producción sigue pendiente del respaldo; Vercel se verificará antes de publicar. Ver [implementación, matriz y pruebas de P01](P01_PERMISOS_INTEGRIDAD_IMPORTES.md). La prueba SQL usa PostgreSQL temporal con datos ficticios; no requiere instalar el stack Supabase local.
 
 En el workspace original: `PROYECTO/PLAN_MAESTRO_IMPLEMENTACION.md` contiene el orden y los controles; `SUPABASE/PREPARACION_DESARROLLO_2026-10-27.md` registra esta preparación. Los respaldos privados están fuera del repositorio oficial y no deben copiarse a Git.

@@ -11,6 +11,7 @@ import {
 } from "@/components/icons";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { createClient } from "@/lib/supabase/client";
+import { canAccessPath, isActiveProfile } from "@/lib/permissions";
 
 const navItems = [
   { href: "/", label: "Menú", icon: MenuIcon },
@@ -50,10 +51,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
       const { data } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role,active")
         .eq("id", userData.user.id)
         .maybeSingle();
-      if (mounted) setRole(data?.role ?? null);
+      if (mounted) setRole(isActiveProfile(data) ? data.role : null);
     }
 
     void loadRole();
@@ -118,14 +119,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <nav className="flex w-full flex-1 flex-col gap-2">
           {navItems
-            .filter((item) => role !== null)
-            .filter((item) =>
-              role === "barista"
-                ? item.href === "/cafe"
-                : role === "cook"
-                  ? item.href === "/cocina"
-                : item.href !== "/menu-admin" || role === "admin",
-            )
+            .filter((item) => canAccessPath({ role, active: true }, item.href))
             .map((item) => {
               const active =
                 item.href === "/"

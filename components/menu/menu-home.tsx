@@ -11,6 +11,7 @@ import {
 } from "@/components/icons";
 import type { Category, DraftOrderLine, MenuItem } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
+import { priceOrder } from "@/lib/money";
 
 type MenuHomeProps = {
   categories: Category[];
@@ -81,7 +82,7 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
   );
 
   const subtotal = useMemo(
-    () => lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0),
+    () => priceOrder(lines.map((line) => ({ id: line.menuItemId, unitPrice: line.unitPrice, quantity: line.quantity }))).netCents / 100,
     [lines],
   );
   const productCount = useMemo(

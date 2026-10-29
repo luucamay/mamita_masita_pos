@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { canAccessPath, homeForRole, isActiveProfile } from "@/lib/permissions";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -28,6 +29,18 @@ export async function middleware(request: NextRequest) {
     },
   );
 
+  function redirectTo(url: URL) {
+    // NextURL normalizes loopback addresses to localhost. Keep the browser's host,
+    // otherwise a 127.0.0.1 redirect loses its host-only authentication cookie.
+    const host = request.headers.get("host");
+    if (host) url.host = host;
+    const redirect = NextResponse.redirect(url);
+    // Preserve refreshed session cookies when returning a redirect response.
+    for (const cookie of response.cookies.getAll()) redirect.cookies.set(cookie);
+    redirect.headers.set("Cache-Control", "private, no-store");
+    return redirect;
+  }
+
   const { data } = await supabase.auth.getClaims();
   const isLoginPage = request.nextUrl.pathname === "/login";
 
@@ -35,39 +48,22 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", request.nextUrl.pathname);
-    return NextResponse.redirect(url);
+    return redirectTo(url);
   }
 
   if (data?.claims) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("role, active")
       .eq("id", String(data.claims.sub))
       .maybeSingle();
 
-    if (isLoginPage) {
-      const destination =
-        profile?.role === "barista"
-          ? "/cafe"
-          : profile?.role === "cook"
-            ? "/cocina"
-            : "/";
-      return NextResponse.redirect(new URL(destination, request.url));
+    if (profileError || !isActiveProfile(profile)) {
+      if (isLoginPage) return response;
+      return redirectTo(new URL("/login?reason=inactive", request.url));
     }
-
-    if (profile?.role === "barista" && request.nextUrl.pathname !== "/cafe") {
-      return NextResponse.redirect(new URL("/cafe", request.url));
-    }
-
-    if (profile?.role === "cook" && request.nextUrl.pathname !== "/cocina") {
-      return NextResponse.redirect(new URL("/cocina", request.url));
-    }
-
-    if (
-      request.nextUrl.pathname.startsWith("/menu-admin") &&
-      (profile?.role !== "admin" || profile.active !== true)
-    ) {
-      return NextResponse.redirect(new URL("/", request.url));
+    if (isLoginPage || !canAccessPath(profile, request.nextUrl.pathname)) {
+      return redirectTo(new URL(homeForRole(profile.role), request.url));
     }
   }
 
@@ -76,6 +72,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest\\.webmanifest$|sw\\.js$|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
