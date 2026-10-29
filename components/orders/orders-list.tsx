@@ -1,23 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { OpenOrder } from "@/lib/types";
 import { TableIcon } from "@/components/icons";
 import { PaymentBadge } from "@/components/orders/payment-badge";
+import { OrderEditor } from "@/components/orders/order-editor";
+import { orderIsEditable, type OrderLine, type OrderSnapshot } from "@/lib/order-edit";
 
 type PaymentMethod = "cash" | "qr" | "card";
 
-type OrderDetailItem = {
-  id: string;
-  item_name: string;
-  category_name: string;
-  quantity: number;
-  unit_price: number | string;
-  line_total: number | string;
-  status: string;
-};
+type OrderDetailItem = OrderLine;
 
 function formatMoney(value: number | string) {
   return new Intl.NumberFormat("es-BO", {
@@ -51,8 +45,12 @@ function escapeHtml(value: string) {
   })[character] ?? character);
 }
 
-export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; closed?: boolean }) {
+export function OrdersList({ orders, closed = false, testCatalog }: { orders: OpenOrder[]; closed?: boolean; testCatalog?: { id: string; name: string; price: number }[] }) {
   const router = useRouter();
+  const [displayOrders, setDisplayOrders] = useState(orders);
+  const [editing, setEditing] = useState(false);
+  const detailRequest = useRef(0);
+  useEffect(() => setDisplayOrders(orders), [orders]);
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
@@ -74,6 +72,8 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
   }, [selectedOrder]);
 
   async function showDetails(order: OpenOrder) {
+    const requestId = ++detailRequest.current;
+    setEditing(false);
     setSelectedOrder(order);
     setSelectedPaymentMethod(null);
     setDetailItems([]);
@@ -82,10 +82,11 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
 
     const { data, error: detailError } = await createClient()
       .from("order_items")
-      .select("id, item_name, category_name, quantity, unit_price, line_total, status")
+      .select("*")
       .eq("order_id", order.id)
       .order("created_at", { ascending: true });
 
+    if (requestId !== detailRequest.current) return;
     if (detailError) setDetailsError(detailError.message);
     else {
       setDetailItems(
@@ -98,6 +99,15 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
       );
     }
     setDetailsLoading(false);
+  }
+
+  function appliedChanges(snapshot: OrderSnapshot) {
+    setSelectedOrder(snapshot.order);
+    setDetailItems(snapshot.items);
+    setDisplayOrders((list) => list.map((order) => order.id === snapshot.order.id ? snapshot.order : order));
+    setEditing(false);
+    setError(null);
+    router.refresh();
   }
 
   async function markDelivered(orderId: string) {
@@ -183,7 +193,7 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
             <p><strong>Estado:</strong> ${escapeHtml(order.status)}</p>
           </div>
           <ul>
-            ${items.map((item) => `<li><span class="item">${item.quantity} × ${escapeHtml(item.item_name)}</span><span class="price">${escapeHtml(formatMoney(item.line_total))}</span></li>`).join("")}
+            ${items.filter((item) => item.status !== "voided").map((item) => `<li><span class="item">${item.quantity} × ${escapeHtml(item.item_name)}</span><span class="price">${escapeHtml(formatMoney(item.line_total))}</span></li>`).join("")}
           </ul>
           <div class="total"><span>Total</span><span>${escapeHtml(formatMoney(order.total))}</span></div>
         </body>
@@ -194,7 +204,7 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
     printWindow.close();
   }
 
-  if (orders.length === 0) {
+  if (displayOrders.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-[var(--border)] bg-white px-6 py-16 text-center">
         <p className="font-medium">{closed ? "No hay pedidos cerrados" : "No hay pedidos abiertos"}</p>
@@ -210,7 +220,7 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
       {error ? (
         <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
       ) : null}
-      {orders.map((order) => {
+      {displayOrders.map((order) => {
         const delivered = order.status === "entregado";
         return (
            <article
@@ -219,6 +229,7 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
              tabIndex={0}
              onClick={() => showDetails(order)}
              onKeyDown={(event) => {
+               if (event.target !== event.currentTarget) return;
                if (event.key === "Enter" || event.key === " ") {
                  event.preventDefault();
                  showDetails(order);
@@ -343,7 +354,7 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  disabled={detailsLoading || Boolean(detailsError) || detailItems.length === 0}
+                  disabled={editing || detailsLoading || Boolean(detailsError) || detailItems.length === 0}
                   onClick={() => printOrder(selectedOrder, detailItems)}
                   className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -381,7 +392,7 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
                 </div>
             </div>
 
-            {detailsLoading ? (
+            {editing ? <OrderEditor orderId={selectedOrder.id} catalog={testCatalog} onSaved={appliedChanges} onCancel={() => setEditing(false)} /> : detailsLoading ? (
               <p className="py-10 text-center text-sm text-[var(--muted)]">Cargando productos...</p>
             ) : detailsError ? (
               <p className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -394,13 +405,13 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
                   <span>{selectedOrder.item_count} ítem(s)</span>
                 </div>
                 <div className="divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)]">
-                  {detailItems.map((item) => (
+                  {detailItems.filter((item) => item.status !== "voided").map((item) => (
                     <div key={item.id} className="flex items-center justify-between gap-4 px-4 py-3">
                       <div className="min-w-0">
                         <p className="font-medium">{item.quantity} × {item.item_name}</p>
                         <p className="text-xs text-[var(--muted)]">{item.category_name} · {formatMoney(item.unit_price)} c/u</p>
                       </div>
-                      <p className="shrink-0 font-semibold">{formatMoney(item.line_total)}</p>
+                      <p className="shrink-0 font-semibold">{formatMoney(item.net_total ?? item.line_total)}</p>
                     </div>
                   ))}
                 </div>
@@ -409,6 +420,7 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
                   <span className="text-lg font-semibold">{formatMoney(selectedOrder.total)}</span>
                 </div>
                  <div className="mt-5">
+                   {!closed && orderIsEditable(selectedOrder) ? <button type="button" onClick={() => setEditing(true)} className="mb-3 min-h-11 w-full rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 font-semibold text-orange-800">Editar pedido</button> : null}
                    {closed || selectedOrder.status === "archivado" ? (
                      <div className="w-full rounded-xl bg-gray-100 px-4 py-3 text-center text-sm font-semibold text-gray-600">
                        Cerrado

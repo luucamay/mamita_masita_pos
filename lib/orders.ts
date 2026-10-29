@@ -46,7 +46,7 @@ export async function getClosedOrders(): Promise<{
   return {
     orders: (data ?? []).map((order) => ({
       ...order,
-      item_count: Array.isArray(order.items) ? order.items.length : 0,
+      item_count: Array.isArray(order.items) ? order.items.filter((item: { status?: string }) => item.status !== "voided").length : 0,
       total: Number(order.total ?? 0),
     })) as OpenOrder[],
     error: null,

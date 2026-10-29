@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { dirname, basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "node:net";
+import { randomUUID } from "node:crypto";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const bin = process.env.P01_PG_BIN ?? "C:/Program Files/PostgreSQL/17/bin";
@@ -64,7 +65,7 @@ try {
   const migrations = readdirSync(join(root, "supabase/migrations")).filter((file) => file.endsWith(".sql")).sort();
   const p01 = migrations.filter((file) => file.endsWith("_p01_permissions_integrity_amounts.sql"));
   assert.equal(p01.length, 1);
-  for (const file of migrations.filter((file) => !p01.includes(file))) query(readFileSync(join(root, "supabase/migrations", file), "utf8"));
+  for (const file of migrations.filter((file) => file < p01[0])) query(readFileSync(join(root, "supabase/migrations", file), "utf8"));
   query(readFileSync(join(root, "supabase/tests/fixtures/p01_baseline.sql"), "utf8"));
   const legacyBefore = read("select jsonb_build_object('order',to_jsonb(o),'items',(select jsonb_agg(to_jsonb(i) order by id) from public.order_items i where i.order_id=o.id),'payments',(select jsonb_agg(to_jsonb(p) order by id) from public.order_payments p where p.order_id=o.id)) from public.orders o where o.order_number='LEGACY-QA'");
   query(`begin; ${readFileSync(join(root, "supabase/migrations", p01[0]), "utf8")} commit;`);
@@ -227,6 +228,80 @@ try {
     const final = read(`select status||','||total||','||(select count(*) from public.order_payments p where p.order_id=o.id) from public.orders o where id='${racingOrder}'`);
     assert(["confirmado,79.00,0", "archivado,59.00,1"].includes(final), final);
   });
+  if (["p04", "p05"].includes(process.argv[2])) {
+    const migration = migrations.find((file) => file.endsWith("_p04_edit_orders.sql"));
+    assert(migration);
+    query(`begin; ${readFileSync(join(root, "supabase/migrations", migration), "utf8")} commit;`);
+    const revision = (order) => read(`select revision from public.orders where id='${order}'`);
+    const editSql = (order, version, changes, key = randomUUID()) => `select public.edit_order('${order}',${version},'${JSON.stringify(changes)}'::jsonb,'${key}')`;
+    check("P04 add/remove keeps the order, totals 59 → 79 → 69 and creation time", () => {
+      const order = createOrder();
+      const created = read(`select created_at from public.orders where id='${order}'`);
+      const kitchen = read(`select printed_at from public.order_items where order_id='${order}' and queue_type='kitchen'`);
+      const changes = [{ action: "add", menu_item_id: cappuccino, quantity: 1, expected_unit_price: 20 }];
+      const version = revision(order), key = randomUUID();
+      const saved = JSON.parse(as("staff", editSql(order, version, changes, key)));
+      assert.equal(Number(saved.order.total), 79);
+      as("staff", editSql(order, version, changes, key));
+      assert.equal(read(`select count(*) from public.order_items where order_id='${order}' and menu_item_id='${cappuccino}'`), "1");
+      const coffee = read(`select id from public.order_items where order_id='${order}' and menu_item_id='${espresso}'`);
+      const after = JSON.parse(as("staff", editSql(order, revision(order), [{ action: "remove", order_item_id: coffee }])));
+      assert.equal(Number(after.order.total), 69);
+      assert.equal(after.items.find((line) => line.id === coffee).status, "voided");
+      assert.equal(read(`select created_at from public.orders where id='${order}'`), created);
+      assert.equal(read(`select printed_at from public.order_items where order_id='${order}' and queue_type='kitchen'`), kitchen);
+      assert.equal(read(`select count(*) from public.print_jobs where order_id='${order}'`), "1");
+    });
+    check("P04 stale versions, alien lines, invalid catalog and roles cannot edit", () => {
+      const order = createOrder(), version = revision(order);
+      const change = [{ action: "add", menu_item_id: cappuccino, quantity: 1, expected_unit_price: 20 }];
+      for (const who of ["anon", "inactive", "missing", "cook", "barista"]) {
+        denied(who, editSql(order, version, change), "42501");
+        denied(who, `select public.get_order_edit_snapshot('${order}')`, "42501");
+      }
+      denied("staff", editSql(order, version, [{ ...change[0], expected_unit_price: 1 }]), "40001");
+      as("staff", editSql(order, version, change));
+      denied("staff", editSql(order, version, change), "40001");
+      const other = createOrder();
+      const foreignLine = read(`select id from public.order_items where order_id='${other}' limit 1`);
+      denied("staff", editSql(order, revision(order), [{ action: "remove", order_item_id: foreignLine }]));
+      query(`update public.menu_items set active=false where id='${cappuccino}'`);
+      denied("staff", editSql(order, revision(order), change), "40001");
+      query(`update public.menu_items set active=true where id='${cappuccino}'`);
+      assert.equal(read(`select total from public.orders where id='${order}'`), "79.00");
+    });
+    check("P04 delivered lines survive, empty orders and partial batches roll back", () => {
+      const order = createOrder();
+      const coffee = read(`select id from public.order_items where order_id='${order}' and queue_type='cafe'`);
+      as("barista", `select * from public.mark_order_item_delivered('${coffee}')`);
+      denied("staff", editSql(order, revision(order), [{ action: "remove", order_item_id: coffee }]));
+      const version = revision(order);
+      denied("staff", editSql(order, version, [{ action: "add", menu_item_id: cappuccino, quantity: 1, expected_unit_price: 20 }, { action: "add", menu_item_id: "00000000-0000-0000-0000-000000000000", quantity: 1, expected_unit_price: 1 }]));
+      assert.equal(revision(order), version);
+      assert.equal(read(`select total from public.orders where id='${order}'`), "59.00");
+      const kitchen = read(`select id from public.order_items where order_id='${order}' and queue_type='kitchen'`);
+      query(`update public.menu_items set price=999 where id='${focaccia}'`);
+      as("staff", editSql(order, revision(order), [{ action: "update", order_item_id: kitchen, quantity: 2 }]));
+      assert.equal(read(`select total from public.orders where id='${order}'`), "108.00");
+      query(`update public.menu_items set price=49 where id='${focaccia}'`);
+      as("staff", editSql(order, revision(order), [{ action: "update", order_item_id: kitchen, quantity: 1 }]));
+      assert.equal(read(`select total from public.orders where id='${order}'`), "59.00");
+      const single = createOrder([{ menu_item_id: espresso, quantity: 1 }]);
+      const only = read(`select id from public.order_items where order_id='${single}'`);
+      denied("staff", editSql(single, revision(single), [{ action: "remove", order_item_id: only }]));
+      assert.equal(read(`select status from public.order_items where id='${only}'`), "pending");
+      as("staff", `select * from public.mark_order_delivered('${order}')`);
+      as("staff", `select * from public.checkout_order('${order}','cash')`);
+      denied("staff", editSql(order, revision(order), [{ action: "add", menu_item_id: cappuccino, quantity: 1, expected_unit_price: 20 }]));
+    });
+    const simultaneous = createOrder(), currentVersion = revision(simultaneous);
+    const additions = [{ action: "add", menu_item_id: cappuccino, quantity: 1, expected_unit_price: 20 }];
+    const attempts = await Promise.all([concurrently(asSql("staff", editSql(simultaneous, currentVersion, additions))), concurrently(asSql("staff", editSql(simultaneous, currentVersion, additions)))]);
+    check("P04 concurrent editors cannot overwrite or duplicate additions", () => {
+      assert.equal(attempts.filter((attempt) => attempt.status === 0).length, 1, JSON.stringify(attempts));
+      assert.equal(read(`select total from public.orders where id='${simultaneous}'`), "79.00");
+    });
+  }
   success = true;
   console.log(JSON.stringify({ checksPassed: passed, productionConnected: false, realSalesCreated: false }));
 } finally {
