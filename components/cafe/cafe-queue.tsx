@@ -4,13 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { CafeQueueItem } from "@/lib/types";
-
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat("es-BO", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
+import { formatOrderTime as formatTime } from "@/lib/date-time";
 
 function playNotification(context: AudioContext) {
   const oscillator = context.createOscillator();

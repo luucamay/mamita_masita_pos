@@ -8,6 +8,7 @@ import { TableIcon } from "@/components/icons";
 import { PaymentBadge } from "@/components/orders/payment-badge";
 import { OrderEditor } from "@/components/orders/order-editor";
 import { orderIsEditable, type OrderLine, type OrderSnapshot } from "@/lib/order-edit";
+import { formatOrderDate as formatDate } from "@/lib/date-time";
 
 type PaymentMethod = "cash" | "qr" | "card";
 
@@ -18,15 +19,6 @@ function formatMoney(value: number | string) {
     style: "currency",
     currency: "BOB",
   }).format(Number(value));
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("es-BO", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
 }
 
 const paymentLabels: Record<PaymentMethod, string> = {
