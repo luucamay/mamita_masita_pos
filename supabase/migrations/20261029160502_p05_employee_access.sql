@@ -123,4 +123,3 @@ create or replace function public.admin_set_employee_active(p_employee_id uuid,p
 revoke all on function public.admin_employee_context(),public.admin_prepare_employee(uuid,text,text,public.user_role),public.admin_complete_employee(uuid,uuid),public.admin_set_employee_active(uuid,boolean,timestamptz) from public,anon;
 grant execute on function public.admin_employee_context(),public.admin_prepare_employee(uuid,text,text,public.user_role),public.admin_complete_employee(uuid,uuid),public.admin_set_employee_active(uuid,boolean,timestamptz) to authenticated;
 notify pgrst,'reload schema';
-
