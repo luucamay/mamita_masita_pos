@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { OpenOrder } from "@/lib/types";
 import { TableIcon } from "@/components/icons";
+import { PaymentBadge } from "@/components/orders/payment-badge";
 
 type PaymentMethod = "cash" | "qr" | "card";
 
@@ -141,9 +142,8 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
 
     setPaymentOrderId(null);
     setSelectedPaymentMethod(null);
-    setSelectedOrder((current) =>
-      current?.id === orderId ? { ...current, status: "archivado", payment_method: method } : current,
-    );
+    // The refreshed closed list reads the actual paid_at/method from the server.
+    setSelectedOrder(null);
     router.refresh();
     setWorkingId(null);
   }
@@ -268,6 +268,7 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
                ) : null}
                </div>
                <div className="flex items-center justify-between gap-4 sm:justify-end">
+                 <PaymentBadge order={order} />
                  {!closed && !delivered ? (
                    <button
                      type="button"
@@ -374,12 +375,10 @@ export function OrdersList({ orders, closed = false }: { orders: OpenOrder[]; cl
                   <p className="mt-1 font-semibold">{selectedOrder.customer_name}</p>
                 </div>
               ) : null}
-              {selectedOrder.payment_method ? (
                 <div>
                   <p className="text-[var(--muted)]">Pago</p>
-                  <p className="mt-1 font-semibold">{paymentLabels[selectedOrder.payment_method]}</p>
+                  <div className="mt-1"><PaymentBadge order={selectedOrder} /></div>
                 </div>
-              ) : null}
             </div>
 
             {detailsLoading ? (
