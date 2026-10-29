@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { qaOrderCatalog, qaOrderId, qaOrderSnapshot } from "../lib/qa-order-fixture";
+import { qaEmployees } from "../lib/qa-employee-fixture";
 
 async function login(page: Page, role = "STAFF", destination = "/pedidos") {
   await page.goto(`/login?next=${encodeURIComponent(destination)}`);
@@ -104,4 +105,89 @@ test("P04 exposes concurrent edit conflicts without discarding the draft", async
   await expect(page.getByRole("button", { name: "Quitar nuevo Cappuccino QA", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Descartar cambios y recargar", exact: true }).click();
   await expect(page.getByRole("button", { name: "Quitar nuevo Cappuccino QA", exact: true })).toHaveCount(0);
+});
+
+test("P05 admin creates, deactivates and reactivates synthetic employees on desktop and mobile", async ({ page }) => {
+  const employees = structuredClone(qaEmployees);
+  const mutations: string[] = [];
+  await page.route("**/rest/v1/**", async (route) => {
+    if (!["GET", "HEAD"].includes(route.request().method())) { await route.abort(); throw new Error("Unexpected real database mutation"); }
+    await route.continue();
+  });
+  await page.route(/\/api\/employees(?:\/[^/?]+)?(?:\?.*)?$/, async (route) => {
+    const method = route.request().method();
+    if (method === "GET") return route.fulfill({ json: { employees } });
+    mutations.push(method);
+    const body = route.request().postDataJSON();
+    if (method === "POST") {
+      expect(body.role).toBe("cook");
+      expect(body.requestId).toMatch(/^[a-f0-9-]{36}$/);
+      const employee = { id: "00000000-0000-4000-8000-000000005004", full_name: body.fullName, email: body.email, role: body.role, active: true, updated_at: "2026-10-29T13:00:00Z" };
+      employees.push(employee); return route.fulfill({ status: 201, json: { employee, resumed: false } });
+    }
+    if (method === "PATCH") {
+      const employee = employees.find((item) => item.id === new URL(route.request().url()).pathname.split("/").at(-1))!;
+      expect(body.updatedAt).toBe(employee.updated_at);
+      employee.active = body.active;
+      employee.updated_at = new Date(Date.parse(employee.updated_at) + 1000).toISOString();
+      return route.fulfill({ json: { employee } });
+    }
+    await route.abort(); throw new Error("Unexpected employee method");
+  });
+  await login(page, "ADMIN");
+  await page.goto("/qa-preview/employees");
+  await expect(page.getByRole("article", { name: "Administradora QA", exact: true }).getByRole("button", { name: "Desactivar acceso" })).toBeDisabled();
+  await page.screenshot({ path: "test-results/modules/p05-desktop.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Agregar empleado", exact: true }).click();
+  await page.getByLabel("Nombre completo", { exact: true }).fill("Nueva Cocinera QA");
+  await page.getByLabel("Correo electrónico", { exact: true }).fill("nueva@example.test");
+  await page.getByLabel("Rol", { exact: true }).selectOption("cook");
+  await page.getByLabel("Contraseña inicial", { exact: true }).fill("Synthetic12345");
+  await page.getByRole("button", { name: "Crear acceso", exact: true }).click();
+  const employee = page.getByRole("article", { name: "Nueva Cocinera QA", exact: true });
+  await expect(employee).toContainText("Cocina"); await expect(employee).toContainText("nueva@example.test");
+  page.once("dialog", (dialog) => dialog.accept());
+  await employee.getByRole("button", { name: "Desactivar acceso" }).click();
+  await expect(employee).toContainText("Inactivo");
+  await employee.getByRole("button", { name: "Reactivar acceso" }).click();
+  await expect(employee.getByRole("button", { name: "Desactivar acceso" })).toBeVisible();
+  expect(mutations).toEqual(["POST", "PATCH", "PATCH"]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "test-results/modules/p05-mobile.png", fullPage: true });
+});
+
+test("P05 preserves the creation form and operation ID after a failed response", async ({ page }) => {
+  const requests: string[] = [];
+  await page.route("**/api/employees", async (route) => {
+    const body = route.request().postDataJSON(); requests.push(body.requestId);
+    if (requests.length === 1) return route.fulfill({ status: 503, json: { error: "Falta completar el perfil. Reintenta con los mismos datos." } });
+    return route.fulfill({ status: 201, json: { employee: { ...qaEmployees[1], id: "00000000-0000-4000-8000-000000005004", full_name: body.fullName, email: body.email }, resumed: true } });
+  });
+  await login(page, "ADMIN"); await page.goto("/qa-preview/employees");
+  await page.getByRole("button", { name: "Agregar empleado", exact: true }).click();
+  await page.getByLabel("Nombre completo").fill("Retry QA"); await page.getByLabel("Correo electrónico").fill("retry@example.test"); await page.getByLabel("Contraseña inicial").fill("Synthetic12345");
+  await page.getByRole("button", { name: "Crear acceso", exact: true }).click();
+  await expect(page.locator('p[role="alert"]')).toContainText("Reintenta");
+  await expect(page.getByLabel("Nombre completo")).toHaveValue("Retry QA");
+  await page.getByRole("button", { name: "Crear acceso", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("primer intento");
+  expect(requests).toHaveLength(2); expect(requests[0]).toBe(requests[1]);
+});
+
+test("P05 staff cannot see employees or call the administrative API", async ({ page }) => {
+  await login(page);
+  await expect(page.getByRole("link", { name: "Empleados", exact: true })).toHaveCount(0);
+  await page.goto("/empleados"); await expect(page).toHaveURL("/");
+  const response = await page.request.get("/api/employees");
+  expect(response.status()).toBe(403); expect(response.headers()["cache-control"]).toContain("no-store");
+});
+
+test("P05 legacy shared database blocks administration before using the secret key", async ({ page }) => {
+  await login(page, "ADMIN", "/empleados");
+  await expect(page.locator('p[role="alert"]')).toContainText("todavía no está habilitada");
+  await expect(page.getByRole("button", { name: "Agregar empleado", exact: true })).toBeDisabled();
+  const response = await page.request.get("/api/employees"); expect(response.status()).toBe(503);
+  const crossSite = await page.request.post("/api/employees", { headers: { Origin: "https://unrelated.example" }, data: {} });
+  expect(crossSite.status()).toBe(403);
 });

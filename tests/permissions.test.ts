@@ -11,7 +11,7 @@ test("denies missing, inactive and unknown profiles", () => {
 
 test("enforces the route matrix, including exports and nested admin paths", () => {
   const roles: UserRole[] = ["admin", "staff", "cook", "barista"];
-  const cases: [string, UserRole[]][] = [["/", ["admin", "staff"]], ["/pedidos", ["admin", "staff"]], ["/cafe", ["admin", "staff", "barista"]], ["/cocina", ["admin", "staff", "cook"]], ["/menu-admin", ["admin"]], ["/historial/export", ["admin"]], ["/menu-admin-evil", []], ["/unknown", []]];
+  const cases: [string, UserRole[]][] = [["/", ["admin", "staff"]], ["/pedidos", ["admin", "staff"]], ["/cafe", ["admin", "staff", "barista"]], ["/cocina", ["admin", "staff", "cook"]], ["/menu-admin", ["admin"]], ["/empleados", ["admin"]], ["/empleados/nuevo", ["admin"]], ["/historial/export", ["admin"]], ["/menu-admin-evil", []], ["/empleados-evil", []], ["/unknown", []]];
   for (const [path, allowed] of cases) for (const role of roles) assert.equal(canAccessPath({ role, active: true }, path), allowed.includes(role), `${role}: ${path}`);
 });
 

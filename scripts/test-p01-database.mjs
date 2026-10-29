@@ -302,6 +302,69 @@ try {
       assert.equal(read(`select total from public.orders where id='${simultaneous}'`), "79.00");
     });
   }
+  if (process.argv[2] === "p05") {
+    // Minimal synthetic Auth table only in this disposable native PostgreSQL cluster.
+    query(`create table auth.users(id uuid primary key,email text,raw_app_meta_data jsonb default '{}',raw_user_meta_data jsonb default '{}');`);
+    const migration = migrations.find((file) => file.endsWith("_p05_employee_access.sql"));
+    assert(migration);
+    query(`begin; ${readFileSync(join(root, "supabase/migrations", migration), "utf8")} commit;`);
+    const version = (employee) => read(`select updated_at from public.profiles where id='${employee}'`);
+    const toggle = (employee, active, timestamp = version(employee)) => `select public.admin_set_employee_active('${employee}',${active},'${timestamp}')`;
+    const requestId = randomUUID(), userId = randomUUID();
+    const prepare = (request = requestId, email = "new@example.test", name = "Nuevo QA") => `select public.admin_prepare_employee('${request}','${email}','${name}','staff')`;
+    const complete = (request = requestId, user = userId) => `select public.admin_complete_employee('${request}','${user}')`;
+    check("P05 admin readiness rejects broad grants and all non-admin identities", () => {
+      assert.equal(JSON.parse(as("admin", "select public.admin_employee_context()")).actor_id, id.admin);
+      for (const who of ["anon", "staff", "cook", "barista", "inactive", "missing"]) {
+        denied(who, "select public.admin_employee_context()", "42501");
+        denied(who, prepare(), "42501"); denied(who, complete(), "42501"); denied(who, toggle(id.staff, false), "42501");
+      }
+      query("grant update on public.profiles to authenticated");
+      denied("admin", "select public.admin_employee_context()", "55000");
+      query("revoke update on public.profiles from authenticated");
+    });
+    check("P05 deactivate blocks an existing session and reactivation preserves history", () => {
+      const before = read(`select count(*) from public.orders where created_by='${id.staff}'`);
+      as("admin", toggle(id.staff, false));
+      denied("staff", "select * from public.create_order('QA')", "42501");
+      assert.equal(as("staff", "select count(*) from public.orders"), "0");
+      assert.equal(read(`select count(*) from public.orders where created_by='${id.staff}'`), before);
+      as("admin", toggle(id.staff, true));
+      assert.equal(as("staff", `select active from public.profiles where id='${id.staff}'`), "t");
+      assert.equal(read(`select count(*) from public.profiles where id='${id.staff}'`), "1");
+      denied("admin", toggle(id.admin, false));
+      denied("admin", toggle(id.staff, false, "2000-01-01T00:00:00Z"), "40001");
+    });
+    check("P05 reservations normalize emails and safely resume only matching pending data", () => {
+      const original = JSON.parse(as("admin", prepare(requestId, " NEW@EXAMPLE.TEST ")));
+      assert.equal(original.email, "new@example.test");
+      assert.equal(JSON.parse(as("admin", prepare(randomUUID()))).request_id, requestId);
+      denied("admin", prepare(requestId, "another@example.test"), "22023");
+      denied("admin", prepare(randomUUID(), "new@example.test", "Other Name"), "23505");
+    });
+    check("P05 completion rejects spoofed metadata and preserves already completed profiles", () => {
+      query(`insert into auth.users(id,email,raw_user_meta_data) values('${userId}','new@example.test','{"mamita_employee_request":"${requestId}"}')`);
+      denied("admin", complete(), "42501");
+      query(`update auth.users set raw_app_meta_data='{"mamita_employee_request":"${requestId}"}' where id='${userId}'`);
+      const result = JSON.parse(as("admin", complete())); assert.equal(result.role, "staff"); assert.equal(result.active, true);
+      as("admin", complete());
+      assert.equal(read(`select count(*) from public.profiles where id='${userId}'`), "1");
+      assert.equal(read(`select count(*) from private.employee_events where employee_id='${userId}' and action='created'`), "1");
+      as("admin", toggle(userId, false));
+      assert.equal(JSON.parse(as("admin", complete())).active, false);
+      denied("admin", prepare(randomUUID()), "23505");
+      denied("admin", complete(requestId, randomUUID()), "22023");
+    });
+    const secondAdmin = randomUUID();
+    query(`insert into public.profiles(id,role,full_name,active) values('${secondAdmin}','admin','Second QA admin',true)`);
+    id.secondAdmin = secondAdmin;
+    const attempts = await Promise.all([concurrently(asSql("admin", toggle(secondAdmin, false))), concurrently(asSql("secondAdmin", toggle(id.admin, false)))]);
+    check("P05 concurrent admins cannot deactivate each other and leave no administrator", () => {
+      assert.equal(attempts.filter((attempt) => attempt.status === 0).length, 1, JSON.stringify(attempts));
+      assert.equal(read("select count(*) from public.profiles where role='admin' and active"), "1");
+      assert.equal(read("select count(*) from public.profiles where role='admin'"), "2");
+    });
+  }
   success = true;
   console.log(JSON.stringify({ checksPassed: passed, productionConnected: false, realSalesCreated: false }));
 } finally {

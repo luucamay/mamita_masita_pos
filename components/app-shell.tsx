@@ -8,6 +8,7 @@ import {
   MenuIcon,
   OrdersIcon,
   SettingsIcon,
+  EmployeesIcon,
 } from "@/components/icons";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { createClient } from "@/lib/supabase/client";
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/pedidos", label: "Pedidos", icon: OrdersIcon },
   { href: "/historial", label: "Historial", icon: HistoryIcon },
   { href: "/menu-admin", label: "Admin menú", icon: SettingsIcon },
+  { href: "/empleados", label: "Empleados", icon: EmployeesIcon },
 ];
 
 const roleMarkers: Record<string, string> = {

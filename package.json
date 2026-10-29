@@ -13,6 +13,11 @@
     "test:p01:db": "node scripts/test-p01-database.mjs",
     "test:p01:access": "playwright test --config playwright.access.config.ts",
     "test:p02": "playwright test --config playwright.p02.config.ts",
+    "test:p03": "node --experimental-strip-types --test tests/payment.test.ts",
+    "test:p04:db": "node scripts/test-p01-database.mjs p04",
+    "test:p05": "node --experimental-strip-types --test tests/employees.test.ts",
+    "test:p05:db": "node scripts/test-p01-database.mjs p05",
+    "test:modules": "playwright test --config playwright.modules.config.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
