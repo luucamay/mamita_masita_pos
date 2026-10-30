@@ -12,7 +12,7 @@ test("P11 product dashboard reconciles the real day and keeps the breakdown acce
   await login(page); await expect(page).toHaveURL("/historial"); await page.goto("/historial?date=2026-10-17");
   const table = page.getByRole("table", { name: "Ventas por producto", exact: true }); await expect(table.locator("tbody tr")).toHaveCount(4);
   const cappuccino = table.getByRole("row").filter({ hasText: "Cappuccino" }); await expect(cappuccino.locator("td").nth(0)).toHaveText("1"); await expect(cappuccino.locator("td").nth(1)).toContainText(/20[,.]00/);
-  const detail = page.locator("details summary"); await detail.focus(); await page.keyboard.press("Enter"); await expect(page.getByRole("region", { name: "Productos vendidos", exact: true })).toBeVisible(); await detail.click();
+  const detail = page.locator("details summary"); await detail.focus(); await page.keyboard.press("Enter"); await expect(page.getByRole("region", { name: "Productos vendidos", exact: true })).toBeVisible(); await detail.click(); await page.evaluate(() => { (document.activeElement as HTMLElement)?.blur(); window.scrollTo(0, 0); });
   await page.screenshot({ path: "test-results/dashboard/dashboard-desktop.png", fullPage: true, animations: "disabled" }); await page.setViewportSize({ width: 390, height: 844 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); await page.screenshot({ path: "test-results/dashboard/dashboard-mobile.png", fullPage: true, animations: "disabled" });
 });
 test("P11 staff still starts on the order menu and cannot view the dashboard", async ({ page }) => {

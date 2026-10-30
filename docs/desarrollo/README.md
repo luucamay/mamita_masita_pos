@@ -1,5 +1,7 @@
 # Desarrollo de mejoras de octubre de 2026
 
+**Estado vigente P11/P12, 30/10:** admin inicia en Historial y reportes con hoy y tabla por producto. Menú operativo de admin en `/menu`; Atención conserva `/`. Exportación actual XLSX real con formato acordado, filtros, totales y empleados identificados. Se retiró CSV. Ambas entregas reutilizan P09, sin migraciones ni escrituras de ventas. Ver [P11](P11_DASHBOARD_ADMIN.md), [P12](P12_EXPORTACION_EXCEL.md). Pendiente revisión de Omar y muestra; sin despliegue. Las notas inferiores son históricas.
+
 **Estado vigente, 30/10:** P09/P10 implementados después de P07/P08; migración P09 `20261030041017` aplicada, P10 sin cambios adicionales en base. Reportes inicia solo con hoy y permite consultar semana/mes/fecha. Los cuadros Total/Efectivo/QR corresponden al período/tipo de compra y el pago filtra el detalle. Ver [P09](P09_PERIODOS_REPORTES.md), [P10](P10_SUMATORIAS_CAJA.md). Sin despliegue; revisión funcional pendiente. El estado del 29/10 de abajo es histórico.
 
 **Estado actual, 29/10:** P01–P08 implementados; P01/P04/P05/P06/P07 aplicados al Supabase compartido con autorización de Omar. P08 no requiere migración. Sin despliegue web; revisión funcional pendiente. Las notas de preparación inferiores son históricas. Ver [P07 compra personal](P07_COMPRAS_EMPLEADOS.md), [P08 perfil](P08_PERFIL.md) y [aplicación inicial de migraciones](APLICACION_SUPABASE_2026-10-29.md). Las pruebas generales de ventas continúan bloqueadas y la recuperación integral pendiente.

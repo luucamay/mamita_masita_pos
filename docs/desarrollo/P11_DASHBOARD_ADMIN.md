@@ -33,6 +33,8 @@ El botón **Tomar pedido** abre el menú completo para admin. Atención mantiene
 
 Tres pruebas de lógica: 2 Cappuccino por Bs 34, combinación con empleado, conservación de ID/nombre/precios históricos, suma exacta de centavos y destinos/permisos. Build QA/TypeScript aprobado. Siete escenarios de navegador aprobados: tres P11 y cuatro de períodos/sumas P09/P10, con cuentas QA y lecturas reales. No se registran ventas. La regresión final con P12 se documentará en su entrega.
 
+**Verificación final con P12:** 42/42 escenarios de regresión aprobados y nueve afectados repetidos después del último ajuste de Excel, todos aprobados; 32 pruebas de lógica acumuladas. Escritorio y móvil de 390 px revisados; tabla principal sin desplazamiento horizontal, desglose expandible con teclado. Diez tablas de Supabase con las mismas huellas antes/después. [Evidencia](../../../SUPABASE/evidencias/p11_p12_verificacion_2026-10-30.json).
+
 ## Guía de revisión
 
 1. Ingresar como admin sin un enlace especial: debe abrir Historial y reportes con hoy.

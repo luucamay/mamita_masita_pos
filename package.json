@@ -30,11 +30,14 @@
     "test:p10:db": "node scripts/test-p01-database.mjs p10",
     "test:reports:ui": "playwright test --config playwright.reports.config.ts",
     "test:p11": "node --experimental-strip-types --test tests/report-products.test.ts",
-    "test:p11:ui": "playwright test --config playwright.dashboard.config.ts"
+    "test:p11:ui": "playwright test --config playwright.dashboard.config.ts",
+    "test:p12": "node --experimental-strip-types --test tests/report-xlsx.test.ts",
+    "test:p12:ui": "playwright test --config playwright.excel.config.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.2",
+    "exceljs": "4.4.0",
     "next": "^15.5.23",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

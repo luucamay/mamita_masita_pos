@@ -1,3 +1,4 @@
+import ExcelJS from "exceljs";
 import { test, expect, type Page } from "@playwright/test";
 import reference from "./report-reference.json";
 const money = (n: number) => new Intl.NumberFormat("es-BO", { style: "currency", currency: "BOB" }).format(n);
@@ -25,17 +26,17 @@ test("P09 real daily, weekly and monthly results match the independent payment s
     await expect(page.getByTestId("summary-qr")).toContainText(money(reference[period].qr));
   }
 });
-test("P09 payment and purchase filters also govern CSV; invalid export dates are rejected", async ({ page }) => {
+test("P09 payment and purchase filters also govern Excel; invalid export dates are rejected", async ({ page }) => {
   await login(page); await page.goto("/historial?period=weekly&date=2026-10-17");
   await page.getByLabel("Medio de pago del detalle").selectOption("qr");
   await page.getByRole("button", { name: "Aplicar filtros", exact: true }).click();
   await expect(page.getByTestId("filtered-total")).toContainText(money(reference.weekly.qr));
   await expect(page.getByTestId("summary-total")).toContainText(money(reference.weekly.total));
   await expect(page.getByTestId("summary-cash")).toContainText(money(reference.weekly.cash));
-  const link = page.getByRole("link", { name: "Exportar CSV", exact: true });
+  const link = page.getByRole("link", { name: "Exportar Excel", exact: true });
   const href = await link.getAttribute("href"); expect(href).toContain("payment=qr"); expect(href).toContain("date=2026-10-17");
   const response = await page.request.get(href!); expect(response.status()).toBe(200);
-  const csv = await response.text(); expect(csv).toContain("Purchase Type"); expect(csv).not.toContain(",Efectivo,"); expect(csv).toContain(",QR,");
+  const workbook = new ExcelJS.Workbook(); await workbook.xlsx.load(new Uint8Array(await response.body()).buffer); const sheet = workbook.getWorksheet("Ventas")!; expect(sheet.getCell("C10").value).toBe(reference.weekly.qr); expect(sheet.getColumn(4).values).not.toContain("Efectivo"); expect(sheet.getColumn(4).values).toContain("QR");
   expect((await page.request.get("/historial/export?period=daily&date=2026-02-30")).status()).toBe(400);
   expect((await page.request.get("/historial/export?period=daily&period=monthly")).status()).toBe(400);
   await page.getByLabel("Tipo de compra").selectOption("employee"); await page.getByRole("button", { name: "Aplicar filtros", exact: true }).click();

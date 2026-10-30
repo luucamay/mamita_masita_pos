@@ -34,7 +34,7 @@ export function ReportView({ report, filters, error = null }: { report: SalesRep
     {report ? <>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-5">
         <div><h2 className="text-lg font-semibold">Detalle por producto</h2><p className="mt-1 text-sm text-[var(--muted)]" data-testid="filtered-total">{money(report.filtered.total)} · {report.filtered.orders} pedidos · {report.filtered.units} unidades con los filtros del detalle.</p></div>
-        <a href={`/historial/export?${reportQuery(active)}`} download className="inline-flex min-h-11 items-center rounded-xl border border-orange-200 bg-orange-50 px-4 text-sm font-semibold text-orange-800">Exportar CSV</a>
+        <a href={`/historial/export?${reportQuery(active)}`} download className="inline-flex min-h-11 items-center rounded-xl border border-orange-200 bg-orange-50 px-4 text-sm font-semibold text-orange-800">Exportar Excel</a>
       </div>
       <ProductSalesTable rows={report.rows}/>
       <details className="space-y-4"><summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold text-orange-800">Ver desglose por pago y tipo de compra</summary>
