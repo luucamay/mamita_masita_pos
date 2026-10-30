@@ -1,5 +1,7 @@
 # Supabase Backend
 
+P09 paid-date reporting (`20261030041017`) was applied on October 30 (Bolivia date). Do not reapply it. The new admin-only invoker RPC returns one aggregated JSON snapshot by Bolivia day/week/month, payment and purchase type; an index supports payment date ranges. Existing report views and sales rows are preserved. P10 uses the same snapshot without another migration. See [P09](../docs/desarrollo/P09_PERIODOS_REPORTES.md) and [P10](../docs/desarrollo/P10_SUMATORIAS_CAJA.md). `pnpm test:p10:db` runs 40 synthetic SQL groups locally, without a production connection.
+
 P07 employee purchases (`20261030014210`) was applied on October 29 (Bolivia date). Do not reapply it. It adds fixed 20% personal purchases with admin/staff payment approval, private request idempotency, owner history and marked consolidated reporting. P08 profile uses existing fields and has no additional migration. See [P07](../docs/desarrollo/P07_COMPRAS_EMPLEADOS.md) and [P08](../docs/desarrollo/P08_PERFIL.md). `pnpm test:p07:db` runs synthetic PostgreSQL tests locally; no shared sales are committed by that runner.
 
 ## P01 — October 2026

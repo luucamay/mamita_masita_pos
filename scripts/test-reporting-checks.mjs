@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-export function testReporting({ query, read, as, denied, check, id, espresso, focaccia, cappuccino }) {
+export function testReporting({ query, read, as, denied, check, id, espresso, focaccia, cappuccino, includeSummary = false }) {
   function sale(paidAt, items, method = "cash", discount = 0, employee = false) {
     const order = randomUUID();
     query(`insert into public.orders(id,order_number,table_number,created_by,created_at,discount_bps,purchase_type,buyer_employee_id) values('${order}','REPORT-${order}','QA','${id.staff}','2030-01-01T12:00:00Z',${discount},'${employee ? "employee" : "customer"}',${employee ? `'${id.cook}'` : "null"});`);
@@ -52,4 +52,23 @@ export function testReporting({ query, read, as, denied, check, id, espresso, fo
     assert.equal(large.rows.reduce((sum, row) => sum + row.total_sale_value, 0), 1005);
     assert.equal(report("2030-02-01", "monthly").summary.total, 1089);
   });
+  if (includeSummary) {
+    sale("2030-03-01T12:00:00Z", [{ product: espresso, price: 10 }, { product: focaccia, price: 49 }]);
+    sale("2030-03-01T13:00:00Z", [{ product: cappuccino, price: 20, quantity: 2 }], "qr", 1500);
+    check("P10 cash 59 plus discounted QR 34 is 93, exactly two orders and four units", () => {
+      const result = report("2030-03-01");
+      assert.equal(result.summary.total, 93); assert.equal(result.summary.orders, 2); assert.equal(result.summary.units, 4);
+      assert.equal(result.summary.cash.amount, 59); assert.equal(result.summary.qr.amount, 34);
+      assert.equal(result.summary.cash.orders, 1); assert.equal(result.summary.qr.orders, 1);
+    });
+    sale("2030-03-01T14:00:00Z", [{ product: espresso, price: 10 }, { product: focaccia, price: 49 }], "cash", 2000, true);
+    sale("2030-03-01T15:00:00Z", [{ product: espresso, price: 10 }], "card");
+    check("P10 employee income and other methods reconcile, payment filter preserves scoped cash summary", () => {
+      const result = report("2030-03-01", "daily", "qr");
+      assert.equal(result.summary.total, 150.2); assert.equal(result.summary.orders, 4); assert.equal(result.summary.units, 7);
+      assert.equal(result.summary.cash.amount, 106.2); assert.equal(result.summary.qr.amount, 34); assert.equal(result.summary.other.amount, 10);
+      assert.equal(result.filtered.total, 34); assert.equal(result.filtered.orders, 1);
+      assert.equal(report("2030-03-01", "daily", "all", "employee").summary.total, 47.2);
+    });
+  }
 }

@@ -44,6 +44,8 @@ Los asesores posteriores mantienen los avisos previos de [RLS sin políticas](ht
 
 ## Pruebas
 
+**Resultado final conjunto P09/P10:** 37/37 escenarios de navegador, 25 pruebas de lógica, 40 grupos SQL acumulados y build QA/TypeScript aprobados. P09 había pasado sus tres escenarios antes de comenzar P10; su commit es `ad0b89b`. Diez huellas de datos públicos coinciden antes de migrar y después de la regresión. [Evidencia agregada](../../../SUPABASE/evidencias/p09_p10_verificacion_2026-10-30.json).
+
 - Tres pruebas de lógica: filtros inválidos, fechas bisiestas, cruces de año/mes, URLs compartidas.
 - 38 grupos SQL acumulados: compatibilidad P01/P04/P06/P07 y seis grupos P09. Cubren medianoche, compra de empleado, descuento, tarjeta, precio mixto, anulaciones, ausencia de ventas, permisos y más de 1.000 grupos.
 - Lectura remota con identidad QA admin: 17/10 = Bs 54 / 1 pedido / 4 unidades; 12–18/10 = Bs 689 / 11 pedidos / 40 unidades; octubre = Bs 6.832 / 150 pedidos / 442 unidades. Coincide con un cálculo independiente desde la copia previa de pagos y líneas.

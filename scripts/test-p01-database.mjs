@@ -229,7 +229,7 @@ try {
     const final = read(`select status||','||total||','||(select count(*) from public.order_payments p where p.order_id=o.id) from public.orders o where id='${racingOrder}'`);
     assert(["confirmado,79.00,0", "archivado,59.00,1"].includes(final), final);
   });
-  if (["p04", "p05", "p06", "p07", "p09"].includes(process.argv[2])) {
+  if (["p04", "p05", "p06", "p07", "p09", "p10"].includes(process.argv[2])) {
     const migration = migrations.find((file) => file.endsWith("_p04_edit_orders.sql"));
     assert(migration);
     query(`begin; ${readFileSync(join(root, "supabase/migrations", migration), "utf8")} commit;`);
@@ -366,7 +366,7 @@ try {
       assert.equal(read("select count(*) from public.profiles where role='admin'"), "2");
     });
   }
-  if (["p06", "p07", "p09"].includes(process.argv[2])) {
+  if (["p06", "p07", "p09", "p10"].includes(process.argv[2])) {
     query(`create table auth.users(id uuid primary key,email text,raw_app_meta_data jsonb default '{}');`);
     const p05 = migrations.find((file) => file.endsWith("_p05_employee_access.sql"));
     query(readFileSync(join(root, "supabase/migrations", p05), "utf8"));
@@ -447,7 +447,7 @@ try {
       assert.equal(read(`select count(*) from public.daily_promotions where promotion_date='${day}'`), "1");
     });
   }
-  if (["p07", "p09"].includes(process.argv[2])) {
+  if (["p07", "p09", "p10"].includes(process.argv[2])) {
     const before = read("select md5(string_agg(to_jsonb(o)::text,'' order by id)) from public.orders o");
     const previousReport = as("admin", "select coalesce(sum(total_sale_value),0) from public.v_sales_report_daily");
     const migration = migrations.find((file) => file.endsWith("_p07_employee_purchases.sql"));
@@ -521,10 +521,10 @@ try {
       const last=first.purchases[0].order;const second=JSON.parse(as("barista",`select public.list_employee_purchases('mine','${last.created_at}','${last.id}',1)`));assert.notEqual(first.purchases[0].order.id,second.purchases[0].order.id);
     });
   }
-  if (process.argv[2] === "p09") {
+  if (["p09", "p10"].includes(process.argv[2])) {
     const file = migrations.find(file => file.endsWith("_p09_sales_report_periods.sql"));
     query(readFileSync(join(root, "supabase/migrations", file), "utf8"));
-    testReporting({ query, read, as, denied, check, id, espresso, focaccia, cappuccino });
+    testReporting({ query, read, as, denied, check, id, espresso, focaccia, cappuccino, includeSummary: process.argv[2] === "p10" });
   }
   success = true;
   console.log(JSON.stringify({ checksPassed: passed, productionConnected: false, realSalesCreated: false }));

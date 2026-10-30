@@ -20,6 +20,9 @@ test("P09 real daily, weekly and monthly results match the independent payment s
     await expect(page.getByTestId("filtered-total")).toContainText(money(reference[period].total));
     await expect(page.getByTestId("filtered-total")).toContainText(`${reference[period].orders} pedidos`);
     await expect(page.getByTestId("filtered-total")).toContainText(`${reference[period].units} unidades`);
+    await expect(page.getByTestId("summary-total")).toContainText(money(reference[period].total));
+    await expect(page.getByTestId("summary-cash")).toContainText(money(reference[period].cash));
+    await expect(page.getByTestId("summary-qr")).toContainText(money(reference[period].qr));
   }
 });
 test("P09 payment and purchase filters also govern CSV; invalid export dates are rejected", async ({ page }) => {
@@ -27,6 +30,8 @@ test("P09 payment and purchase filters also govern CSV; invalid export dates are
   await page.getByLabel("Medio de pago del detalle").selectOption("qr");
   await page.getByRole("button", { name: "Aplicar filtros", exact: true }).click();
   await expect(page.getByTestId("filtered-total")).toContainText(money(reference.weekly.qr));
+  await expect(page.getByTestId("summary-total")).toContainText(money(reference.weekly.total));
+  await expect(page.getByTestId("summary-cash")).toContainText(money(reference.weekly.cash));
   const link = page.getByRole("link", { name: "Exportar CSV", exact: true });
   const href = await link.getAttribute("href"); expect(href).toContain("payment=qr"); expect(href).toContain("date=2026-10-17");
   const response = await page.request.get(href!); expect(response.status()).toBe(200);
@@ -36,6 +41,19 @@ test("P09 payment and purchase filters also govern CSV; invalid export dates are
   await page.getByLabel("Tipo de compra").selectOption("employee"); await page.getByRole("button", { name: "Aplicar filtros", exact: true }).click();
   await expect(page.getByText("No hay ventas cobradas con estos filtros.", { exact: true })).toBeVisible();
   await expect(page.getByTestId("filtered-total")).toContainText(money(0));
+  await expect(page.getByTestId("summary-total")).toContainText(money(0));
+});
+test("P10 opens only today and shows real zero amounts on an empty day", async ({ page }) => {
+  await login(page); await page.goto("/historial");
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/La_Paz", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const get = (type: string) => parts.find(part => part.type === type)!.value;
+  await expect(page.getByLabel("Fecha de referencia")).toHaveValue(`${get("year")}-${get("month")}-${get("day")}`);
+  await expect(page.getByTestId("summary-total")).toContainText("Total del día");
+  await page.goto("/historial?date=2031-01-01");
+  await expect(page.getByTestId("summary-total")).toContainText(money(0));
+  await expect(page.getByTestId("summary-total")).toContainText("0 pedidos");
+  await expect(page.getByTestId("summary-cash")).toContainText(money(0));
+  await expect(page.getByTestId("summary-qr")).toContainText(money(0));
 });
 test("P09 navigation boundaries, invalid parameters and mobile layout", async ({ page }) => {
   await login(page); await page.getByRole("link", { name: "Anterior", exact: true }).click();
