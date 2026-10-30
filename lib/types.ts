@@ -1,4 +1,20 @@
+import type { OrderLine } from "./order-edit";
 export type QueueType = "kitchen" | "cafe";
+export type PurchaseType = "customer" | "employee";
+// PostgreSQL numeric values may arrive as decimal strings. Convert using lib/money.
+export type OrderAmounts = {
+  subtotal: number | string;
+  discount_bps: number;
+  discount_amount: number | string;
+  total: number | string;
+  purchase_type: PurchaseType;
+  buyer_employee_id: string | null;
+};
+export type LineAmounts = {
+  line_total: number | string;
+  discount_amount: number | string;
+  net_total: number | string;
+};
 export type OrderStatus =
   | "pendiente"
   | "confirmado"
@@ -22,6 +38,7 @@ export type MenuItem = {
   price: number;
   active: boolean;
   sort_order: number;
+  updated_at?: string;
   categories?: Pick<Category, "id" | "name" | "slug" | "queue_type"> | null;
 };
 
@@ -35,6 +52,15 @@ export type DraftOrderLine = {
 };
 
 export type OpenOrder = {
+  payment_methods?: ("cash"|"qr"|"card")[] | null;
+  items?: OrderLine[];
+  purchase_type?: PurchaseType;
+  buyer_employee_id?: string | null;
+  employee_cancelled_at?: string | null;
+  revision?: number;
+  subtotal?: number | string;
+  discount_bps?: number;
+  discount_amount?: number | string;
   id: string;
   order_number: string;
   table_number: string;

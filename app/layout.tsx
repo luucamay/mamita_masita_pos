@@ -4,8 +4,8 @@ import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Mamita Masita POS",
-  description: "POS y gestión de pedidos para café",
+  title: "Mamita Masita",
+  description: "Pedidos y ventas de Mamita Masita",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [

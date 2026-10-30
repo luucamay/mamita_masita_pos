@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireRoles } from "@/lib/auth";
 import type { Category, MenuItem } from "@/lib/types";
 
-export async function getMenuData(): Promise<{
+async function loadCatalog(): Promise<{
   categories: Category[];
   items: MenuItem[];
   error: string | null;
@@ -47,4 +48,13 @@ export async function getMenuData(): Promise<{
     items,
     error: null,
   };
+}
+
+export async function getMenuData() {
+  await requireRoles(["admin", "staff"]);
+  return loadCatalog();
+}
+export async function getEmployeeMenuData() {
+  await requireRoles(["admin", "staff", "cook", "barista"]);
+  return loadCatalog();
 }

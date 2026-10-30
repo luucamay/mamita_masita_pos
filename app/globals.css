@@ -59,11 +59,12 @@ body {
     sans-serif;
 }
 
-button,
-input {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
+@layer base {
+  button,
+  input {
+    font: inherit;
+  }
+  button {
+    cursor: pointer;
+  }
 }

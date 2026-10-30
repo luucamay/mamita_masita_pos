@@ -1,0 +1,267 @@
+{
+  "label": "before",
+  "measuredAt": "2026-10-30T11:02:03.917Z",
+  "method": "same local QA production build mode, Chrome desktop, real shared DB; sequential 5 navigation rounds (round0 warmup), 4 closed/report rounds (round0 warmup); idle cafe 16s; no load test",
+  "samples": [
+    {
+      "round": 0,
+      "path": "/cocina",
+      "ms": 944
+    },
+    {
+      "round": 0,
+      "path": "/cafe",
+      "ms": 915
+    },
+    {
+      "round": 0,
+      "path": "/pedidos",
+      "ms": 67
+    },
+    {
+      "round": 0,
+      "path": "/historial",
+      "ms": 901
+    },
+    {
+      "round": 1,
+      "path": "/cocina",
+      "ms": 904
+    },
+    {
+      "round": 1,
+      "path": "/cafe",
+      "ms": 917
+    },
+    {
+      "round": 1,
+      "path": "/pedidos",
+      "ms": 904
+    },
+    {
+      "round": 1,
+      "path": "/historial",
+      "ms": 880
+    },
+    {
+      "round": 2,
+      "path": "/cocina",
+      "ms": 905
+    },
+    {
+      "round": 2,
+      "path": "/cafe",
+      "ms": 889
+    },
+    {
+      "round": 2,
+      "path": "/pedidos",
+      "ms": 887
+    },
+    {
+      "round": 2,
+      "path": "/historial",
+      "ms": 883
+    },
+    {
+      "round": 3,
+      "path": "/cocina",
+      "ms": 878
+    },
+    {
+      "round": 3,
+      "path": "/cafe",
+      "ms": 863
+    },
+    {
+      "round": 3,
+      "path": "/pedidos",
+      "ms": 893
+    },
+    {
+      "round": 3,
+      "path": "/historial",
+      "ms": 928
+    },
+    {
+      "round": 4,
+      "path": "/cocina",
+      "ms": 937
+    },
+    {
+      "round": 4,
+      "path": "/cafe",
+      "ms": 896
+    },
+    {
+      "round": 4,
+      "path": "/pedidos",
+      "ms": 906
+    },
+    {
+      "round": 4,
+      "path": "/historial",
+      "ms": 985
+    },
+    {
+      "round": 0,
+      "path": "/pedidos?view=closed",
+      "ms": 2217,
+      "cards": 938
+    },
+    {
+      "round": 1,
+      "path": "/pedidos?view=closed",
+      "ms": 2248,
+      "cards": 938
+    },
+    {
+      "round": 2,
+      "path": "/pedidos?view=closed",
+      "ms": 2011,
+      "cards": 938
+    },
+    {
+      "round": 3,
+      "path": "/pedidos?view=closed",
+      "ms": 2158,
+      "cards": 938
+    }
+  ],
+  "payloads": [
+    {
+      "round": 0,
+      "ms": 1834,
+      "bytes": 1935782,
+      "orders": 938,
+      "total": 938
+    },
+    {
+      "round": 1,
+      "ms": 1696,
+      "bytes": 1935782,
+      "orders": 938,
+      "total": 938
+    },
+    {
+      "round": 2,
+      "ms": 1700,
+      "bytes": 1935782,
+      "orders": 938,
+      "total": 938
+    },
+    {
+      "round": 3,
+      "ms": 1827,
+      "bytes": 1935781,
+      "orders": 938,
+      "total": 938
+    }
+  ],
+  "reports": [
+    {
+      "round": 0,
+      "period": "Semanal",
+      "ms": 1105,
+      "documentNavigations": 1
+    },
+    {
+      "round": 0,
+      "period": "Mensual",
+      "ms": 1024,
+      "documentNavigations": 1
+    },
+    {
+      "round": 0,
+      "period": "Diario",
+      "ms": 1041,
+      "documentNavigations": 1
+    },
+    {
+      "round": 1,
+      "period": "Semanal",
+      "ms": 989,
+      "documentNavigations": 1
+    },
+    {
+      "round": 1,
+      "period": "Mensual",
+      "ms": 1044,
+      "documentNavigations": 1
+    },
+    {
+      "round": 1,
+      "period": "Diario",
+      "ms": 1013,
+      "documentNavigations": 1
+    },
+    {
+      "round": 2,
+      "period": "Semanal",
+      "ms": 999,
+      "documentNavigations": 1
+    },
+    {
+      "round": 2,
+      "period": "Mensual",
+      "ms": 1045,
+      "documentNavigations": 1
+    },
+    {
+      "round": 2,
+      "period": "Diario",
+      "ms": 1034,
+      "documentNavigations": 1
+    },
+    {
+      "round": 3,
+      "period": "Semanal",
+      "ms": 967,
+      "documentNavigations": 1
+    },
+    {
+      "round": 3,
+      "period": "Mensual",
+      "ms": 987,
+      "documentNavigations": 1
+    },
+    {
+      "round": 3,
+      "period": "Diario",
+      "ms": 1015,
+      "documentNavigations": 1
+    }
+  ],
+  "idleCafeRequests16s": 3,
+  "lastDocumentTiming": {
+    "ttfbMs": 25,
+    "downloadMs": 516,
+    "domMs": 6,
+    "decodedBytes": 11147
+  },
+  "summary": {
+    "navigation": [
+      {
+        "path": "/cocina",
+        "medianMs": 905
+      },
+      {
+        "path": "/cafe",
+        "medianMs": 896
+      },
+      {
+        "path": "/pedidos",
+        "medianMs": 904
+      },
+      {
+        "path": "/historial",
+        "medianMs": 928
+      }
+    ],
+    "closedMedianMs": 2158,
+    "closedApiMedianMs": 1700,
+    "closedBytes": 1935782,
+    "reportMedianMs": 1013,
+    "reportDocumentNavigations": 12
+  }
+}

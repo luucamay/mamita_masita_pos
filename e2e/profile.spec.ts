@@ -1,0 +1,11 @@
+import{test,expect,type Page}from"@playwright/test";
+async function login(page:Page,role:string){await page.goto("/login?next=%2Fperfil");await page.getByLabel("Correo electrónico").fill(process.env[`E2E_${role}_EMAIL`]!);await page.getByLabel("Contraseña").fill(process.env[`E2E_${role}_PASSWORD`]!);await page.getByRole("button",{name:"Ingresar",exact:true}).click();await expect(page).toHaveURL("/perfil",{timeout:15000});}
+for(const role of ["COOK","BARISTA","STAFF","ADMIN"]){test(`P08 ${role} sees its own identity and purchase action`,async({page})=>{
+ await login(page,role);await page.goto("/perfil?user_id=another-user");const account=page.getByRole("region",{name:"Datos de mi cuenta",exact:true});await expect(account).toContainText(process.env[`E2E_${role}_EMAIL`]!);
+ for(const other of ["COOK","BARISTA","STAFF","ADMIN"].filter(other=>other!==role))await expect(account).not.toContainText(process.env[`E2E_${other}_EMAIL`]!);
+ await expect(account.locator("input")).toHaveCount(0);await page.getByRole("link",{name:"Comprar con descuento de empleado",exact:true}).click();await expect(page).toHaveURL("/perfil/compras",{timeout:15000});await expect(page.getByRole("heading",{name:"Mi compra",exact:true})).toBeVisible();await page.getByRole("link",{name:"Volver a mi perfil",exact:true}).click();await expect(page).toHaveURL("/perfil",{timeout:15000});
+ if(role==="COOK"){await page.screenshot({path:"test-results/p08/profile-desktop.png",fullPage:true,animations:"disabled"});await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:"test-results/p08/profile-mobile.png",fullPage:true,animations:"disabled"});}
+});}
+test("P08 unauthenticated and inactive sessions cannot access the personal profile",async({page})=>{
+ await page.goto("/perfil");await expect(page).toHaveURL(/\/login/);await page.getByLabel("Correo electrónico").fill(process.env.E2E_INACTIVE_STAFF_EMAIL!);await page.getByLabel("Contraseña").fill(process.env.E2E_INACTIVE_STAFF_PASSWORD!);await page.getByRole("button",{name:"Ingresar",exact:true}).click();await expect(page.getByText("Tu cuenta no tiene acceso activo. Contacta a la administradora.",{exact:true})).toBeVisible();await page.goto("/perfil/compras");await expect(page).toHaveURL(/\/login/);
+});

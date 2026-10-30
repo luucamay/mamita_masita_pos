@@ -1,7 +1,7 @@
 {
-  "name": "Mamita Masita POS",
+  "name": "Mamita Masita",
   "short_name": "Mamita Masita",
-  "description": "POS y gestion de pedidos para cafe",
+  "description": "Pedidos y ventas de Mamita Masita",
   "lang": "es",
   "start_url": "/",
   "scope": "/",

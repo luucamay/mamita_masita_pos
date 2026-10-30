@@ -8,17 +8,26 @@ import {
   MenuIcon,
   OrdersIcon,
   SettingsIcon,
+  EmployeesIcon,
+  PromotionsIcon,
 } from "@/components/icons";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { createClient } from "@/lib/supabase/client";
+import { canAccessPath, isActiveProfile } from "@/lib/permissions";
+import { CashboxBanner } from "@/components/cashbox/cashbox-banner";
 
 const navItems = [
   { href: "/", label: "Menú", icon: MenuIcon },
   { href: "/cocina", label: "Cocina", icon: OrdersIcon },
   { href: "/cafe", label: "Café", icon: OrdersIcon },
   { href: "/pedidos", label: "Pedidos", icon: OrdersIcon },
+  { href: "/caja", label: "Caja", icon: HistoryIcon },
   { href: "/historial", label: "Historial", icon: HistoryIcon },
   { href: "/menu-admin", label: "Admin menú", icon: SettingsIcon },
+  { href: "/empleados", label: "Empleados", icon: EmployeesIcon },
+  { href: "/promociones", label: "Promos", icon: PromotionsIcon },
+  { href: "/perfil", label: "Perfil", icon: EmployeesIcon },
+  { href: "/compras-empleados", label: "Cobros equipo", icon: OrdersIcon },
 ];
 
 const roleMarkers: Record<string, string> = {
@@ -50,16 +59,21 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
       const { data } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role,active")
         .eq("id", userData.user.id)
         .maybeSingle();
-      if (mounted) setRole(data?.role ?? null);
+      if (mounted) setRole(isActiveProfile(data) ? data.role : null);
     }
 
     void loadRole();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
-      if (mounted) setRole(null);
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      // loadRole already covers the initial session. Do not repeat its two calls.
+      if (event === "INITIAL_SESSION") return;
+      if (event === "SIGNED_OUT") {
+        if (mounted) setRole(null);
+        return;
+      }
       setTimeout(() => {
         if (mounted) void loadRole();
       }, 0);
@@ -74,7 +88,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (pathname === "/login") {
     return (
       <>
-        {children}
+          {children}
         <PwaInstallPrompt />
       </>
     );
@@ -98,13 +112,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       ) : null}
       <aside
         id="mobile-navigation"
-        className={`fixed inset-y-0 left-0 z-40 flex h-screen w-[88px] flex-col items-center gap-3 bg-[var(--sidebar)] px-3 py-5 text-[var(--sidebar-text)] transition-transform md:sticky md:inset-y-auto md:top-0 md:z-auto md:translate-x-0 md:transition-none ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-screen w-[88px] flex-col items-center gap-3 bg-[var(--sidebar)] px-3 py-5 text-[var(--sidebar-text)] transition-transform motion-reduce:transition-none md:sticky md:inset-y-auto md:top-0 md:z-auto md:translate-x-0 md:transition-none ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div
           aria-label={role ? `Perfil: ${role}` : "Mamita Masita"}
-          className="mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white p-1 text-2xl font-bold text-[var(--sidebar)] shadow-sm"
+          className="mb-4 flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white p-1 text-2xl font-bold text-[var(--sidebar)] shadow-sm"
         >
           {roleMarkers[role ?? ""] ? (
             roleMarkers[role ?? ""]
@@ -116,29 +130,24 @@ export function AppShell({ children }: { children: ReactNode }) {
             />
           )}
         </div>
-        <nav className="flex w-full flex-1 flex-col gap-2">
+        <nav className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto">
           {navItems
-            .filter((item) => role !== null)
-            .filter((item) =>
-              role === "barista"
-                ? item.href === "/cafe"
-                : role === "cook"
-                  ? item.href === "/cocina"
-                : item.href !== "/menu-admin" || role === "admin",
-            )
+            .map(item => item.href === "/" && role === "admin" ? { ...item, href: "/menu" } : item)
+            .filter((item) => canAccessPath({ role, active: true }, item.href))
             .map((item) => {
               const active =
                 item.href === "/"
                   ? pathname === "/"
-                  : pathname.startsWith(item.href);
+                  : pathname === item.href || pathname.startsWith(`${item.href}/`);
               const Icon = item.icon;
 
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={active ? "page" : undefined}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-3 text-[11px] font-medium transition ${
+                  className={`flex shrink-0 flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-medium transition ${
                     active
                       ? "bg-white/15 text-white"
                       : "text-white/70 hover:bg-white/10 hover:text-white"
@@ -162,14 +171,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         </button>
       </aside>
       <main className="min-w-0 flex-1">
-        <header className="flex items-center border-b border-[var(--border)] bg-[var(--surface)] px-4 py-3 md:hidden">
+        <header className="sticky top-0 z-30 flex h-13 items-center border-b border-[var(--border)] bg-[var(--surface)] px-3">
           <button
             type="button"
             aria-label="Abrir menú"
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-navigation"
             onClick={() => setMobileMenuOpen(true)}
-            className="rounded-lg p-2 text-[var(--ink)] hover:bg-[var(--bg)]"
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-[var(--ink)] hover:bg-[var(--bg)] md:hidden"
           >
             <MenuIcon className="h-6 w-6" />
           </button>
@@ -179,8 +188,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             className="ml-2 h-8 w-8 object-contain"
           />
           <span className="ml-2 text-sm font-semibold">Mamita Masita</span>
-        </header>
-        {children}
+          <button type="button" aria-label="Actualizar página" title="Actualizar" onClick={()=>{if(window.dispatchEvent(new Event("mamita:refresh",{cancelable:true})))router.refresh();}} className="ml-auto flex h-11 w-11 items-center justify-center rounded-lg text-[var(--ink)] hover:bg-orange-50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 8a7 7 0 0 1 12-2l2 3M4 15l2 3a7 7 0 0 0 12-2"/></svg></button>
+          </header>
+          {pathname!=="/caja"?<CashboxBanner enabled={role==="admin"||role==="staff"}/>:null}
+          {children}
       </main>
       <PwaInstallPrompt />
     </div>

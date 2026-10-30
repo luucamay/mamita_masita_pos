@@ -1,10 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireRoles, type getActiveAccess } from "@/lib/auth";
 import type { KitchenQueueItem } from "@/lib/types";
 
-export async function getKitchenQueue(): Promise<{
+export async function getKitchenQueue(verifiedAccess?:Awaited<ReturnType<typeof getActiveAccess>>): Promise<{
   items: KitchenQueueItem[];
   error: string | null;
 }> {
+  const access=verifiedAccess??await requireRoles(["admin", "staff", "cook"]);
+  if(!access.profile.active||!["admin","staff","cook"].includes(access.profile.role))return{items:[],error:"Acceso no autorizado"};
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("v_kitchen_tickets")

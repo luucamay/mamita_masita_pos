@@ -1,56 +1,24 @@
+import { validReportDate } from "@/lib/report-filters";
 import Link from "next/link";
-import { OrdersList } from "@/components/orders/orders-list";
-import { getClosedOrders, getOpenOrders } from "@/lib/orders";
+import { LiveOrders } from "@/components/orders/live-orders";
+import { getOrderBoard } from "@/lib/order-board-data";
+import { parseBoardPage } from "@/lib/order-board";
 
 export default async function PedidosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string }>;
+  searchParams: Promise<{ view?: string; page?: string; date?:string; all?:string }>;
 }) {
-  const view = (await searchParams).view === "closed" ? "closed" : "active";
-  const { orders, error } = view === "closed" ? await getClosedOrders() : await getOpenOrders();
+  const query=await searchParams;
+  const view = query.view === "closed" ? "closed" : "active";
+  let page=1,invalid=false;try{page=parseBoardPage(query.page,view==="closed");}catch{invalid=true;}
+  const date=typeof query.date==="string"&&validReportDate(query.date)?query.date:null,allDates=query.all==="1";
+  if(query.date&&!date||query.all&&query.all!=="1")invalid=true;
+  const { board, error } = await getOrderBoard(view === "closed",null,page,undefined,date,allDates);
 
-  return (
-    <div className="px-6 py-6 lg:px-8">
-      <header className="mb-6">
-        <p className="text-sm font-medium text-orange-600">Operación</p>
-        <h1 className="text-2xl font-semibold">Pedidos</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          {view === "active"
-            ? "Pedidos confirmados y pendientes de entrega."
-            : "Pedidos pagados y cerrados."}
-        </p>
-        <nav
-          aria-label="Vista de pedidos"
-          className="mt-5 flex w-fit rounded-xl border border-[var(--border)] bg-white p-1"
-        >
-          <Link
-            href="/pedidos"
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-              view === "active" ? "bg-orange-500 text-white" : "text-[var(--muted)] hover:bg-orange-50"
-            }`}
-            aria-current={view === "active" ? "page" : undefined}
-          >
-            Activos
-          </Link>
-          <Link
-            href="/pedidos?view=closed"
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-              view === "closed" ? "bg-orange-500 text-white" : "text-[var(--muted)] hover:bg-orange-50"
-            }`}
-            aria-current={view === "closed" ? "page" : undefined}
-          >
-            Cerrados
-          </Link>
-        </nav>
-      </header>
-      {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          No se pudieron cargar los pedidos: {error}
-        </div>
-      ) : (
-        <OrdersList orders={orders} closed={view === "closed"} />
-      )}
-    </div>
-  );
+  const navigation=<nav aria-label="Vista de pedidos" className="flex w-fit rounded-lg border border-[var(--border)] bg-white p-0.5">{[{value:"active",label:"Activos",href:"/pedidos"},{value:"closed",label:"Cerrados",href:"/pedidos?view=closed"}].map(tab=><Link key={tab.value} href={tab.href} aria-current={view===tab.value?"page":undefined} className={`inline-flex min-h-11 items-center rounded-md px-3 text-sm font-semibold ${view===tab.value?"bg-orange-500 text-white":"text-[var(--muted)]"}`}>{tab.label}</Link>)}</nav>;
+  return <div className="px-3 py-3 sm:px-4">
+    {invalid?<p role="alert" className="mb-2 rounded-lg bg-amber-50 p-2 text-sm text-amber-900">Página inválida. Se muestra la primera página.</p>:null}
+    {error||!board?<><h1 className="text-xl font-semibold">Pedidos</h1><p role="alert" className="py-2 text-sm text-red-700">No se pudieron cargar los pedidos: {error}</p></>:<LiveOrders key={`${view}-${page}`} initial={board} closed={view==="closed"} page={page} navigation={navigation} filterDate={date}/>}
+  </div>;
 }

@@ -1,8 +1,12 @@
 node_modules/
 .next/
+.next-qa/
+.next-release/
 .env.local
 .env.*.local
 dist/
 coverage/
 /*.log
 .vercel
+test-results/
+playwright-report/

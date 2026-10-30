@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-30",
+  "source": "Private compact backup before migrations; independently computed from original payments/orders/items",
+  "orders": 942,
+  "payments": 941,
+  "timezone": "America/La_Paz (UTC-04:00)",
+  "ledgerRowsAtSnapshot": 0,
+  "filesSha256": {
+    "orders": "1d1fb0b91ed5d15a3151007fee0260a24ccc8af31cfcb150e83f17042e050143",
+    "order_payments": "307b652e4ccb8bf8ba608473fc532be0d1b87feca9cc1952f1aec05937997b61",
+    "order_items": "b1ac881071f067c7fcdea6c1221693e58c6ba4aa7ed048e213c9004f48b5c646"
+  }
+}
