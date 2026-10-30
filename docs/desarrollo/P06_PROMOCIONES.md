@@ -26,6 +26,8 @@ En el menú, el precio individual descontado es una referencia por unidad. El to
 
 Principales archivos: `components/promotions/promotions-panel.tsx`, `app/promociones/page.tsx`, `lib/promotions.ts`, `lib/promotion-data.ts`, `lib/use-pricing-context.ts`, `components/menu/menu-home.tsx`, `lib/orders.ts`, `components/orders/discount-badge.tsx`, detalle/editor y migración. Se conservó la identidad visual naranja del POS; formulario y lista en escritorio, una columna en móvil. Se ajustó la navegación para mantener Promos/Salir accesibles y el producto para evitar superponer precios y controles con el carrito abierto.
 
+**Ajuste solicitado por Omar:** el distintivo de descuento incluye el icono de etiqueta utilizado en Promos, porcentaje visible y nombre accesible. En la tarjeta del pedido se agrupa junto a Efectivo/QR/Sin cobrar; en el detalle acompaña al desglose del descuento. El grupo permite salto de línea en móvil. Sin descuento no se muestra el distintivo. No cambia cálculos ni base de datos.
+
 ## Verificación realizada
 
 - **SQL local:** 24 grupos acumulados: 13 P01, 4 P04 y 7 P06. Incluyen roles, 40 → 34, precio modificado, conservación del porcentaje, edición de cantidades/agregar/quitar, desactivación, fechas inválidas, medianoche de Bolivia, reintento y edición concurrente.

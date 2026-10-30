@@ -240,7 +240,6 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
           >
              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                <div>
-                 <DiscountBadge bps={order.discount_bps} />
                  {closed ? (
                    <>
                      <div className="flex flex-wrap items-center gap-3">
@@ -274,8 +273,11 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
                   </div>
                ) : null}
                </div>
-               <div className="flex items-center justify-between gap-4 sm:justify-end">
-                 <PaymentBadge order={order} />
+               <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
+                 <div className="flex flex-wrap items-center gap-2">
+                   <PaymentBadge order={order} />
+                   <DiscountBadge bps={order.discount_bps} />
+                 </div>
                  {!closed && !delivered ? (
                    <button
                      type="button"
