@@ -33,7 +33,7 @@ for (const { role, home } of [{ role: "STAFF", home: "/" }, { role: "COOK", home
 test("active administrator can open menu administration", async ({ page }) => {
   await login(page, "ADMIN", "/menu-admin");
   await expect(page).toHaveURL(/\/menu-admin$/);
-  await expect(page.getByRole("heading", { name: "Nuevo producto", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Menú admin", exact: true })).toBeVisible();
   expect((await page.request.get("/historial/export?period=invalid")).status()).toBe(400);
 });
 

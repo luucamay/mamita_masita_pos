@@ -38,6 +38,7 @@ export type MenuItem = {
   price: number;
   active: boolean;
   sort_order: number;
+  updated_at?: string;
   categories?: Pick<Category, "id" | "name" | "slug" | "queue_type"> | null;
 };
 

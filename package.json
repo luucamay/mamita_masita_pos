@@ -40,7 +40,9 @@
     "test:p14:ui": "playwright test --config playwright.p14.config.ts",
     "test:compact": "node --experimental-strip-types --test tests/customer-flows.test.ts tests/payment.test.ts tests/report-xlsx.test.ts",
     "test:compact:db": "node scripts/test-p01-database.mjs compact",
-    "test:compact:ui": "playwright test --config playwright.compact.config.ts"
+    "test:compact:ui": "playwright test --config playwright.compact.config.ts",
+    "test:admin:db": "node scripts/test-p01-database.mjs admin",
+    "test:admin:ui": "playwright test --config playwright.regression.config.ts admin-interface.spec.ts menu-search.spec.ts excel-export.spec.ts reports.spec.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

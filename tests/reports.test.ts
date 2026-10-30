@@ -15,3 +15,11 @@ test("P09 URLs preserve all filters for screen and export", () => {
   const filters = parseReportFilters({ period: "monthly", date: "2026-10-17", payment: "qr", purchase: "employee" });
   assert.deepEqual(parseReportFilters(Object.fromEntries(new URLSearchParams(reportQuery(filters)))), filters);
 });
+test("Month picker normalizes the selected month and preserves export filters", () => {
+  const filters = parseReportFilters({ period: "monthly", date: "2028-02", payment: "qr", purchase: "employee" });
+  assert.equal(filters.date, "2028-02-01");
+  assert.equal(reportRange(filters.period, filters.date!).end, "2028-03-01");
+  assert.deepEqual(parseReportFilters(Object.fromEntries(new URLSearchParams(reportQuery(filters)))), filters);
+  for (const date of ["2026-00", "2026-13", "2100-01", "2026-9"]) assert.throws(() => parseReportFilters({ period: "monthly", date }));
+  assert.throws(() => parseReportFilters({ period: "daily", date: "2026-09" }));
+});

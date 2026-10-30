@@ -153,7 +153,7 @@ test("P05 admin creates, deactivates and reactivates synthetic employees on desk
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Agregar empleado", exact: true }).click();
   await page.getByLabel("Nombre completo", { exact: true }).fill("Nueva Cocinera QA");
-  await page.getByLabel("Correo electrónico", { exact: true }).fill("nueva@example.test");
+  await page.getByLabel("Correo de acceso", { exact: true }).fill("nueva@example.test");
   await page.getByLabel("Rol", { exact: true }).selectOption("cook");
   await page.getByLabel("Contraseña inicial", { exact: true }).fill("Synthetic12345");
   await page.getByRole("button", { name: "Crear acceso", exact: true }).click();
@@ -178,7 +178,7 @@ test("P05 preserves the creation form and operation ID after a failed response",
   });
   await login(page, "ADMIN"); await page.goto("/qa-preview/employees");
   await page.getByRole("button", { name: "Agregar empleado", exact: true }).click();
-  await page.getByLabel("Nombre completo").fill("Retry QA"); await page.getByLabel("Correo electrónico").fill("retry@example.test"); await page.getByLabel("Contraseña inicial").fill("Synthetic12345");
+  await page.getByLabel("Nombre completo").fill("Retry QA"); await page.getByLabel("Correo de acceso").fill("retry@example.test"); await page.getByLabel("Contraseña inicial").fill("Synthetic12345");
   await page.getByRole("button", { name: "Crear acceso", exact: true }).click();
   await expect(page.locator('p[role="alert"]')).toContainText("Reintenta");
   await expect(page.getByLabel("Nombre completo")).toHaveValue("Retry QA");

@@ -9,7 +9,7 @@ export default async function MenuAdminPage() {
 
   const [categoriesResult, itemsResult] = await Promise.all([
     supabase.from("categories").select("id, name, slug, queue_type, sort_order, active").order("sort_order"),
-    supabase.from("menu_items").select("id, category_id, name, price, active, sort_order").order("sort_order"),
+    supabase.from("menu_items").select("id, category_id, name, price, active, sort_order, updated_at").order("sort_order"),
   ]);
   if (categoriesResult.error || itemsResult.error) {
     return <main className="p-8"><p role="alert" className="rounded-xl bg-red-50 p-4 text-red-700">No se pudo cargar el administrador del menú.</p></main>;

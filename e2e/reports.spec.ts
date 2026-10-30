@@ -36,7 +36,7 @@ test("P09 payment and purchase filters also govern Excel; invalid export dates a
   const link = page.getByRole("link", { name: "Exportar Excel", exact: true });
   const href = await link.getAttribute("href"); expect(href).toContain("payment=qr"); expect(href).toContain("date=2026-10-17");
   const response = await page.request.get(href!); expect(response.status()).toBe(200);
-  const workbook = new ExcelJS.Workbook(); await workbook.xlsx.load(new Uint8Array(await response.body()).buffer); const sheet = workbook.getWorksheet("Ventas")!; expect(sheet.getCell("C10").value).toBe(reference.weekly.qr); expect(sheet.getColumn(4).values).not.toContain("Efectivo"); expect(sheet.getColumn(4).values).toContain("QR");
+  const workbook = new ExcelJS.Workbook(); await workbook.xlsx.load(new Uint8Array(await response.body()).buffer); const sheet = workbook.getWorksheet("Ventas")!; expect(sheet.getCell("A6").result).toBe(reference.weekly.qr); expect(workbook.getWorksheet("Desglose")!.getColumn(4).values).not.toContain("Efectivo"); expect(workbook.getWorksheet("Desglose")!.getColumn(4).values).toContain("QR");
   expect((await page.request.get("/historial/export?period=daily&date=2026-02-30")).status()).toBe(400);
   expect((await page.request.get("/historial/export?period=daily&period=monthly")).status()).toBe(400);
   await page.getByLabel("Tipo de compra").selectOption("employee"); await page.getByRole("button", { name: "Aplicar filtros", exact: true }).click();
