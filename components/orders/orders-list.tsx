@@ -9,6 +9,8 @@ import { PaymentBadge } from "@/components/orders/payment-badge";
 import { OrderEditor } from "@/components/orders/order-editor";
 import { orderIsEditable, type OrderLine, type OrderSnapshot } from "@/lib/order-edit";
 import { formatOrderDate as formatDate } from "@/lib/date-time";
+import { DiscountBadge } from "@/components/orders/discount-badge";
+import { discountLabel } from "@/lib/promotions";
 
 type PaymentMethod = "cash" | "qr" | "card";
 
@@ -185,8 +187,9 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
             <p><strong>Estado:</strong> ${escapeHtml(order.status)}</p>
           </div>
           <ul>
-            ${items.filter((item) => item.status !== "voided").map((item) => `<li><span class="item">${item.quantity} × ${escapeHtml(item.item_name)}</span><span class="price">${escapeHtml(formatMoney(item.line_total))}</span></li>`).join("")}
+            ${items.filter((item) => item.status !== "voided").map((item) => `<li><span class="item">${item.quantity} × ${escapeHtml(item.item_name)}</span><span class="price">${escapeHtml(formatMoney(item.net_total ?? item.line_total))}</span></li>`).join("")}
           </ul>
+          ${order.discount_bps ? `<p>Subtotal: ${escapeHtml(formatMoney(order.subtotal ?? order.total))}</p><p>Descuento (${discountLabel(order.discount_bps)}): ${escapeHtml(formatMoney(order.discount_amount ?? 0))}</p>` : ""}
           <div class="total"><span>Total</span><span>${escapeHtml(formatMoney(order.total))}</span></div>
         </body>
       </html>`);
@@ -237,6 +240,7 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
           >
              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                <div>
+                 <DiscountBadge bps={order.discount_bps} />
                  {closed ? (
                    <>
                      <div className="flex flex-wrap items-center gap-3">
@@ -407,6 +411,7 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
                     </div>
                   ))}
                 </div>
+                {selectedOrder.discount_bps ? <div className="mt-4 space-y-2 border-t border-[var(--border)] pt-3 text-sm"><div className="flex justify-between"><span>Subtotal</span><span>{formatMoney(selectedOrder.subtotal ?? selectedOrder.total)}</span></div><div className="flex flex-wrap justify-between gap-2 text-orange-800"><span>Descuento original <DiscountBadge bps={selectedOrder.discount_bps} /></span><span>−{formatMoney(selectedOrder.discount_amount ?? 0)}</span></div></div> : null}
                 <div className="mt-4 flex items-center justify-between border-t border-[var(--border)] pt-4">
                   <span className="font-semibold">Total</span>
                   <span className="text-lg font-semibold">{formatMoney(selectedOrder.total)}</span>

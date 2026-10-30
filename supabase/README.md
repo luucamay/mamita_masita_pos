@@ -8,6 +8,8 @@ Migrations P01 (`20261029163703`), P04 (`20261029163747`) and P05 (`202610291638
 
 ## Files
 
+P06 daily promotions (`20261030005743`) was also applied on October 29 (Bolivia date). See [P06 rules, tests and review guide](../docs/desarrollo/P06_PROMOCIONES.md). It preserves existing data; no promotions were left programmed after the reversible integration test. Do not reapply it.
+
 - `migrations/0001_init.sql`: schema, functions, views, RLS, and grants.
 - `seed.sql`: deterministic seed data for the four MVP roles and menu catalog.
 - `tests/00_happy_path.sql`: end-to-end order lifecycle.

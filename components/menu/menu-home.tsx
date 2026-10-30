@@ -12,11 +12,16 @@ import {
 import type { Category, DraftOrderLine, MenuItem } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { priceOrder } from "@/lib/money";
+import { discountLabel, type PricingContext } from "@/lib/promotions";
+import { usePricingContext } from "@/lib/use-pricing-context";
+import { DiscountBadge } from "@/components/orders/discount-badge";
 
 type MenuHomeProps = {
   categories: Category[];
   items: MenuItem[];
   loadError?: string | null;
+  pricing?: PricingContext | null;
+  pricingError?: string | null;
 };
 
 function formatMoney(value: number) {
@@ -36,7 +41,8 @@ function formatCategoryName(name: string) {
     : name;
 }
 
-export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
+export function MenuHome({ categories, items, loadError, pricing = null, pricingError }: MenuHomeProps) {
+  const { quote, quoteError, checking, refreshQuote } = usePricingContext(pricing, pricingError);
   const router = useRouter();
   const linesRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
@@ -81,10 +87,12 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
     [lines],
   );
 
-  const subtotal = useMemo(
-    () => priceOrder(lines.map((line) => ({ id: line.menuItemId, unitPrice: line.unitPrice, quantity: line.quantity }))).netCents / 100,
-    [lines],
+  const priced = useMemo(
+    () => priceOrder(lines.map((line) => ({ id: line.menuItemId, unitPrice: line.unitPrice, quantity: line.quantity })), quote?.discount_bps ?? 0),
+    [lines, quote?.discount_bps],
   );
+  const unavailable = lines.some((line) => !items.some((item) => item.id === line.menuItemId && categories.some((category) => category.id === item.category_id)));
+  useEffect(() => { setLines((current) => current.map((line) => { const item = items.find((item) => item.id === line.menuItemId); return item ? { ...line, unitPrice: item.price } : line; })); }, [items]);
   const productCount = useMemo(
     () => lines.reduce((sum, line) => sum + line.quantity, 0),
     [lines],
@@ -153,6 +161,7 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
   }
 
   async function handleConfirmDraft() {
+    if (!quote || quoteError || checking || saving || unavailable) { setMessage("Actualiza el menú y revisa el pedido antes de confirmar."); return; }
     if (!tableNumber.trim()) {
       setNeedsDetails(true);
       setMessage("Ingresa el número de mesa.");
@@ -174,18 +183,27 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
       }
 
       const { data: createdOrder, error: createError } = await supabase.rpc(
-        "create_order_with_items",
+        "create_order_with_promotion",
         {
           p_table_number: tableNumber.trim(),
           p_customer_name: customerName.trim() || null,
-          p_created_by: userData.user.id,
+          p_expected_date: quote.date,
+          p_expected_revision: quote.revision,
+          p_expected_discount_bps: quote.discount_bps,
           p_items: lines.map((line) => ({
             menu_item_id: line.menuItemId,
             quantity: line.quantity,
+            expected_unit_price: line.unitPrice,
           })),
         },
       );
-      if (createError) throw createError;
+      if (createError) {
+        if (createError.code === "40001") {
+          await refreshQuote(); router.refresh();
+          throw new Error("El menú o la promoción cambió. Revisa el total actualizado y vuelve a confirmar.");
+        }
+        throw new Error(createError.message);
+      }
 
       const order = Array.isArray(createdOrder) ? createdOrder[0] : createdOrder;
       if (!order?.order_id) throw new Error("No se pudo crear el pedido.");
@@ -221,6 +239,9 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
           </label>
         </header>
 
+        {quote?.discount_bps ? <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl bg-orange-50 px-4 py-3 text-sm text-orange-900"><DiscountBadge bps={quote.discount_bps} /><span>Promoción de hoy en todos los productos. El total se calcula sobre el pedido completo.</span></div> : null}
+        {quoteError || !quote ? <div role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-800">{quoteError || "No se pudo verificar la promoción vigente."}<button type="button" onClick={() => void refreshQuote()} disabled={checking} className="ml-2 min-h-11 font-semibold underline">{checking ? "Verificando…" : "Actualizar promoción"}</button></div> : null}
+        {unavailable ? <p role="alert" className="mb-4 text-sm text-red-700">Un producto dejó de estar disponible. Quítalo del pedido antes de confirmar.</p> : null}
         <div className="mb-6 flex flex-nowrap gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible">
           <button
             type="button"
@@ -276,12 +297,12 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
                 {categoryItems.map((item) => (
                   <article
                     key={item.id}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm"
                   >
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1 basis-28">
                       <h3 className="truncate font-medium">{item.name}</h3>
-                      <p className="mt-1 text-sm text-[var(--muted)]">
-                        {formatMoney(item.price)}
+                      <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-[var(--muted)]">
+                        {quote?.discount_bps ? <><del>{formatMoney(item.price)}</del><strong className="text-orange-800">{formatMoney(priceOrder([{ id: item.id, unitPrice: item.price, quantity: 1 }], quote.discount_bps).netCents / 100)}</strong></> : formatMoney(item.price)}
                       </p>
                     </div>
                     {quantitiesByItemId.get(item.id) ? (
@@ -453,7 +474,7 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
                           </button>
                         </div>
                         <p className="font-semibold">
-                          {formatMoney(line.unitPrice * line.quantity)}
+                          {formatMoney((priced.lines.find((item) => item.id === line.menuItemId)?.netCents ?? 0) / 100)}
                         </p>
                       </div>
                     </div>
@@ -471,9 +492,11 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-[var(--muted)]">Subtotal</span>
                 <span className="text-lg font-semibold">
-                  {formatMoney(subtotal)}
+                  {formatMoney(priced.grossCents / 100)}
                 </span>
               </div>
+              {quote?.discount_bps ? <div className="flex items-center justify-between text-sm text-orange-800"><span>Descuento ({discountLabel(quote.discount_bps)})</span><span>−{formatMoney(priced.discountCents / 100)}</span></div> : null}
+              <div className="flex items-center justify-between font-semibold"><span>Total</span><span className="text-lg">{formatMoney(priced.netCents / 100)}</span></div>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -484,7 +507,7 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
                 </button>
                 <button
                   type="button"
-                  disabled={saving}
+                  disabled={saving || checking || !quote || !!quoteError || unavailable}
                   onClick={handleConfirmDraft}
                   className="rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
@@ -503,7 +526,7 @@ export function MenuHome({ categories, items, loadError }: MenuHomeProps) {
               <p className="text-xs text-[var(--muted)]">
                 {productCount} {productCount === 1 ? "producto" : "productos"}
               </p>
-              <p className="text-lg font-semibold">{formatMoney(subtotal)}</p>
+              <p className="text-lg font-semibold">{formatMoney(priced.netCents / 100)}</p>
             </div>
             <button
               type="button"

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeOrderSnapshot, orderIsEditable, type OrderChange, type OrderSnapshot } from "@/lib/order-edit";
 import { priceOrder } from "@/lib/money";
+import { discountLabel } from "@/lib/promotions";
 
 type Product = { id: string; name: string; price: number };
 type Addition = Product & { quantity: number };
@@ -102,6 +103,7 @@ export function OrderEditor({ orderId, onSaved, onCancel, catalog }: { orderId: 
     <section aria-label="Editar pedido" className="mt-5 space-y-4">
       <h3 className="text-lg font-semibold">Editar pedido</h3>
       <p className="text-sm text-[var(--muted)]">Agrega productos o corrige los pendientes. Los ya entregados se conservan. Los cambios se aplican juntos al guardar.</p>
+      {snapshot?.order.discount_bps ? <p className="rounded-xl bg-orange-50 p-3 text-sm text-orange-900">Se conserva el descuento original del {discountLabel(snapshot.order.discount_bps)}, también en los productos nuevos.</p> : null}
       {error ? <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
       {loading ? <p role="status">Cargando pedido y productos…</p> : snapshot ? <>
         {!editable ? <p role="alert" className="rounded-xl bg-orange-50 p-3 text-orange-900">Este pedido ya no admite cambios.</p> : null}

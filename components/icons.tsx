@@ -2,6 +2,10 @@ type IconProps = {
   className?: string;
 };
 
+export function PromotionsIcon({ className }: IconProps) {
+  return <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden><path d="m20 13-7 7a2 2 0 0 1-3 0l-7-7V4h9l8 6a2 2 0 0 1 0 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /><circle cx="7.5" cy="8.5" r="1.5" stroke="currentColor" strokeWidth="1.8" /></svg>;
+}
+
 export function EmployeesIcon({ className }: IconProps) {
   return <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.8" /></svg>;
 }

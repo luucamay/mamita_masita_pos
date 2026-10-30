@@ -50,6 +50,9 @@ export type DraftOrderLine = {
 };
 
 export type OpenOrder = {
+  subtotal?: number | string;
+  discount_bps?: number;
+  discount_amount?: number | string;
   id: string;
   order_number: string;
   table_number: string;

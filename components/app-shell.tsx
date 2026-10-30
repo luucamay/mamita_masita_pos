@@ -9,6 +9,7 @@ import {
   OrdersIcon,
   SettingsIcon,
   EmployeesIcon,
+  PromotionsIcon,
 } from "@/components/icons";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { createClient } from "@/lib/supabase/client";
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/historial", label: "Historial", icon: HistoryIcon },
   { href: "/menu-admin", label: "Admin menú", icon: SettingsIcon },
   { href: "/empleados", label: "Empleados", icon: EmployeesIcon },
+  { href: "/promociones", label: "Promos", icon: PromotionsIcon },
 ];
 
 const roleMarkers: Record<string, string> = {
@@ -112,7 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         <div
           aria-label={role ? `Perfil: ${role}` : "Mamita Masita"}
-          className="mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white p-1 text-2xl font-bold text-[var(--sidebar)] shadow-sm"
+          className="mb-4 flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white p-1 text-2xl font-bold text-[var(--sidebar)] shadow-sm"
         >
           {roleMarkers[role ?? ""] ? (
             roleMarkers[role ?? ""]
@@ -124,7 +126,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             />
           )}
         </div>
-        <nav className="flex w-full flex-1 flex-col gap-2">
+        <nav className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto">
           {navItems
             .filter((item) => canAccessPath({ role, active: true }, item.href))
             .map((item) => {
@@ -140,7 +142,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-3 text-[11px] font-medium transition ${
+                  className={`flex shrink-0 flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-medium transition ${
                     active
                       ? "bg-white/15 text-white"
                       : "text-white/70 hover:bg-white/10 hover:text-white"

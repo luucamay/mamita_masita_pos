@@ -228,7 +228,7 @@ try {
     const final = read(`select status||','||total||','||(select count(*) from public.order_payments p where p.order_id=o.id) from public.orders o where id='${racingOrder}'`);
     assert(["confirmado,79.00,0", "archivado,59.00,1"].includes(final), final);
   });
-  if (["p04", "p05"].includes(process.argv[2])) {
+  if (["p04", "p05", "p06"].includes(process.argv[2])) {
     const migration = migrations.find((file) => file.endsWith("_p04_edit_orders.sql"));
     assert(migration);
     query(`begin; ${readFileSync(join(root, "supabase/migrations", migration), "utf8")} commit;`);
@@ -363,6 +363,87 @@ try {
       assert.equal(attempts.filter((attempt) => attempt.status === 0).length, 1, JSON.stringify(attempts));
       assert.equal(read("select count(*) from public.profiles where role='admin' and active"), "1");
       assert.equal(read("select count(*) from public.profiles where role='admin'"), "2");
+    });
+  }
+  if (process.argv[2] === "p06") {
+    query(`create table auth.users(id uuid primary key,email text,raw_app_meta_data jsonb default '{}');`);
+    const p05 = migrations.find((file) => file.endsWith("_p05_employee_access.sql"));
+    query(readFileSync(join(root, "supabase/migrations", p05), "utf8"));
+    const before = read("select md5(string_agg(to_jsonb(o)::text,'' order by id)) from public.orders o");
+    const migration = migrations.find((file) => file.endsWith("_p06_daily_promotions.sql"));
+    assert(migration); query(`begin; ${readFileSync(join(root, "supabase/migrations", migration), "utf8")} commit;`);
+    const quote = () => JSON.parse(as("staff", "select public.get_order_pricing_context()"));
+    const day = quote().date;
+    const save = (bps, active = true, revision = null, date = day) => `select public.admin_save_daily_promotion('${date}',${bps},${active},${revision ?? "null"})`;
+    const items = [{ menu_item_id: cappuccino, quantity: 2, expected_unit_price: 20 }];
+    const create = (q = quote(), lines = items) => `select public.create_order_with_promotion('QA','P06','${JSON.stringify(lines)}','${q.date}',${q.revision},${q.discount_bps})`;
+    let discounted;
+    check("P06 migration preserves old records and only admin programs promotions", () => {
+      assert.equal(read("select md5(string_agg((to_jsonb(o)-'promotion_date'-'promotion_revision')::text,'' order by id)) from public.orders o"), before);
+      for (const who of ["anon", "staff", "cook", "barista", "inactive", "missing"]) denied(who, save(1500), "42501");
+      for (const who of ["anon", "cook", "barista", "inactive", "missing"]) denied(who, "select public.get_order_pricing_context()", "42501");
+      denied("admin", `insert into public.daily_promotions(promotion_date,discount_bps,created_by,updated_by) values('${day}',1500,'${id.admin}','${id.admin}')`, "42501");
+    });
+    check("P06 fifteen percent is applied by server to Bs 40 -> 34 including legacy creation RPC", () => {
+      as("admin", save(1500)); discounted = JSON.parse(as("staff", create()));
+      assert.equal(Number(discounted.total), 34); assert.equal(Number(discounted.subtotal), 40); assert.equal(Number(discounted.discount_amount), 6);
+      assert.equal(read(`select sum(net_total) from public.order_items where order_id='${discounted.order_id}'`), "34.00");
+      const legacy = createOrder([{ menu_item_id: cappuccino, quantity: 2 }]);
+      assert.equal(read(`select total from public.orders where id='${legacy}'`), "34.00");
+      assert.equal(as("staff", "select count(*) from public.daily_promotions"), "0");
+    });
+    check("P06 stale dates, changed promotion and changed product prices roll back before order creation", () => {
+      const q = quote(), count = read("select count(*) from public.orders");
+      for (const bad of [{ ...q, date: "2000-01-01" }, { ...q, revision: q.revision + 1 }, { ...q, discount_bps: 0 }]) denied("staff", create(bad), "40001");
+      denied("staff", create(q, [{ ...items[0], expected_unit_price: 1 }]), "40001");
+      denied("staff", create(q, [...items, ...items]), "22023");
+      assert.equal(read("select count(*) from public.orders"), count);
+    });
+    check("P06 edited orders keep their original percentage, unit prices and exact net line totals", () => {
+      as("admin", save(2000, true, quote().revision));
+      query(`update public.menu_items set price=22 where id='${cappuccino}'`);
+      const order = discounted.order_id;
+      const edit = (changes) => `select public.edit_order('${order}',(select revision from public.orders where id='${order}'),'${JSON.stringify(changes)}','${randomUUID()}')`;
+      let snapshot = JSON.parse(as("staff", edit([{ action: "add", menu_item_id: cappuccino, quantity: 1, expected_unit_price: 22 }])));
+      assert.equal(Number(snapshot.order.total), 52.7); assert.equal(snapshot.order.discount_bps, 1500);
+      const addition = snapshot.items.find((line) => Number(line.unit_price) === 22);
+      snapshot = JSON.parse(as("staff", edit([{ action: "remove", order_item_id: addition.id }])));
+      assert.equal(Number(snapshot.order.total), 34);
+      const original = snapshot.items.find((line) => line.status !== "voided");
+      snapshot = JSON.parse(as("staff", edit([{ action: "update", order_item_id: original.id, quantity: 3 }])));
+      assert.equal(Number(snapshot.order.total), 51);
+      assert.equal(read(`select sum(net_total) from public.order_items where order_id='${order}'`), "51.00");
+      as("staff", `select public.mark_order_delivered('${order}'); select public.checkout_order('${order}','qr')`);
+      as("admin", save(3000, true, quote().revision));
+      assert.equal(read(`select amount from public.order_payments where order_id='${order}'`), "51.00");
+      query(`update public.menu_items set price=20 where id='${cappuccino}'`);
+    });
+    check("P06 disabling affects only new orders and retries do not duplicate dates or audit", () => {
+      const q = quote();
+      as("admin", save(3000, false, q.revision));
+      const count = read("select count(*) from private.promotion_events");
+      as("admin", save(3000, false, q.revision));
+      assert.equal(read("select count(*) from private.promotion_events"), count);
+      const next = JSON.parse(as("staff", create())); assert.equal(Number(next.total), 40);
+      assert.equal(read(`select discount_bps from public.orders where id='${discounted.order_id}'`), "1500");
+    });
+    check("P06 Bolivia midnight chooses exactly one daily promotion and rejects invalid programming", () => {
+      as("admin", save(2000, true, quote().revision));
+      const tomorrow = read(`select '${day}'::date+1`);
+      as("admin", save(2500, true, null, tomorrow));
+      assert.equal(JSON.parse(read(`select private.promotion_for_instant('${day}T03:59:59Z')`)).discount_bps, 0);
+      assert.equal(JSON.parse(read(`select private.promotion_for_instant('${day}T04:00:00Z')`)).discount_bps, 2000);
+      assert.equal(JSON.parse(read(`select private.promotion_for_instant('${tomorrow}T03:59:59Z')`)).discount_bps, 2000);
+      assert.equal(JSON.parse(read(`select private.promotion_for_instant('${tomorrow}T04:00:00Z')`)).discount_bps, 2500);
+      for (const bps of [0, -1, 10001, "null"]) denied("admin", save(bps), "22023");
+      denied("admin", save(2000, true, null, "2000-01-01"), "22023");
+      denied("staff", "select private.promotion_for_instant(now())", "42501");
+    });
+    const revision = quote().revision;
+    const attempts = await Promise.all([concurrently(asSql("admin", save(1500, true, revision))), concurrently(asSql("admin", save(2500, true, revision)))]);
+    check("P06 concurrent administrators cannot overwrite a changed promotion", () => {
+      assert.equal(attempts.filter((attempt) => attempt.status === 0).length, 1, JSON.stringify(attempts));
+      assert.equal(read(`select count(*) from public.daily_promotions where promotion_date='${day}'`), "1");
     });
   }
   success = true;

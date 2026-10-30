@@ -9,10 +9,11 @@ export async function getOpenOrders(): Promise<{
   await requireRoles(["admin", "staff"]);
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("v_open_orders")
+    .from("orders")
     .select(
-      "id, order_number, table_number, customer_name, status, created_at, delivered_at, paid_at, item_count, total",
+      "id,order_number,table_number,customer_name,status,created_at,delivered_at,paid_at,total,subtotal,discount_bps,discount_amount,order_items(id,status)",
     )
+    .in("status", ["pendiente", "confirmado", "entregado"])
     .order("created_at", { ascending: false });
 
   if (error) return { orders: [], error: error.message };
@@ -20,7 +21,7 @@ export async function getOpenOrders(): Promise<{
   return {
     orders: (data ?? []).map((order) => ({
       ...order,
-      item_count: Number(order.item_count),
+      item_count: order.order_items.filter((item) => item.status !== "voided").length,
       total: Number(order.total ?? 0),
     })) as OpenOrder[],
     error: null,
@@ -34,9 +35,9 @@ export async function getClosedOrders(): Promise<{
   await requireRoles(["admin", "staff"]);
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("v_order_detail")
+    .from("orders")
     .select(
-      "id, order_number, table_number, customer_name, status, payment_method, created_at, delivered_at, paid_at, total, items",
+      "id,order_number,table_number,customer_name,status,payment_method,created_at,delivered_at,paid_at,total,subtotal,discount_bps,discount_amount,order_items(id,status)",
     )
     .in("status", ["pagado", "archivado"])
     .order("paid_at", { ascending: false, nullsFirst: false });
@@ -46,7 +47,7 @@ export async function getClosedOrders(): Promise<{
   return {
     orders: (data ?? []).map((order) => ({
       ...order,
-      item_count: Array.isArray(order.items) ? order.items.filter((item: { status?: string }) => item.status !== "voided").length : 0,
+      item_count: order.order_items.filter((item) => item.status !== "voided").length,
       total: Number(order.total ?? 0),
     })) as OpenOrder[],
     error: null,
