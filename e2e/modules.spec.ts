@@ -17,13 +17,13 @@ test("P03 payment badges match closed cash/QR orders and open unpaid orders", as
   await expect(page.locator('[data-payment-kind="cash"]').first()).toContainText("Efectivo");
   await expect(page.locator('[data-payment-kind="qr"]').first()).toContainText("QR");
   const order = page.locator("article").filter({ has: page.locator('[data-payment-kind="qr"]') }).first();
-  await order.click();
+  await order.getByRole("heading").first().click();
   await expect(page.getByRole("dialog").locator('[data-payment-kind="qr"]')).toContainText("QR");
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-async function mockOrder(page: Page, options: { loseFirstResponse?: boolean; delivered?: boolean; conflict?: boolean } = {}) {
+async function mockOrder(page: Page, options: { loseFirstResponse?: boolean; delivered?: boolean; conflict?: boolean; delaySave?: number } = {}) {
   let snapshot = qaOrderSnapshot();
   if (options.delivered) snapshot.items[0].status = "delivered";
   const requests: string[] = [];
@@ -52,6 +52,7 @@ async function mockOrder(page: Page, options: { loseFirstResponse?: boolean; del
       snapshot.order.total = snapshot.items.filter((line) => line.status !== "voided").reduce((sum, line) => sum + Number(line.line_total), 0);
       snapshot.order.revision++;
       saved = true;
+      if (options.delaySave) await new Promise(resolve => setTimeout(resolve, options.delaySave));
       if (options.loseFirstResponse && requests.length === 1) return route.abort("failed");
       return route.fulfill({ json: snapshot });
     }
@@ -60,7 +61,7 @@ async function mockOrder(page: Page, options: { loseFirstResponse?: boolean; del
   });
   await login(page);
   await page.goto("/qa-preview/orders");
-  await page.locator("article").click();
+  await page.locator("article").getByRole("heading").first().click();
   await page.getByRole("button", { name: "Editar pedido", exact: true }).click();
   await expect(page.getByRole("region", { name: "Editar pedido", exact: true })).toBeVisible();
   return { requests, getSnapshot: () => snapshot };
@@ -105,6 +106,17 @@ test("P04 exposes concurrent edit conflicts without discarding the draft", async
   await expect(page.getByRole("button", { name: "Quitar nuevo Cappuccino QA", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Descartar cambios y recargar", exact: true }).click();
   await expect(page.getByRole("button", { name: "Quitar nuevo Cappuccino QA", exact: true })).toHaveCount(0);
+});
+
+test("P13 a save response cannot reopen an order dialog the user already closed", async ({ page }) => {
+  await mockOrder(page, { delaySave: 700 });
+  await page.getByRole("button", { name: "Agregar Cappuccino QA", exact: true }).click();
+  const saved = page.waitForResponse(response => new URL(response.url()).pathname.endsWith("/rpc/edit_order"));
+  const refreshed = page.waitForResponse(response => new URL(response.url()).pathname === "/qa-preview/orders" && response.request().headers()["rsc"] === "1");
+  await page.getByRole("button", { name: "Guardar cambios", exact: true }).click();
+  await page.getByRole("button", { name: "Cerrar detalle", exact: true }).click();
+  await saved; await refreshed;
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
 test("P05 admin creates, deactivates and reactivates synthetic employees on desktop and mobile", async ({ page }) => {

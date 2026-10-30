@@ -1,3 +1,4 @@
+import type { OrderLine } from "./order-edit";
 export type QueueType = "kitchen" | "cafe";
 export type PurchaseType = "customer" | "employee";
 // PostgreSQL numeric values may arrive as decimal strings. Convert using lib/money.
@@ -50,6 +51,7 @@ export type DraftOrderLine = {
 };
 
 export type OpenOrder = {
+  items?: OrderLine[];
   purchase_type?: PurchaseType;
   buyer_employee_id?: string | null;
   employee_cancelled_at?: string | null;

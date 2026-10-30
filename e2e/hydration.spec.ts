@@ -28,7 +28,7 @@ for (const timezoneId of ["America/La_Paz", "Asia/Tokyo"]) {
         expect(renderedDate).toBe(serverDates[0]);
         expect(text).not.toMatch(/[ap]\.\u00a0m\.|[ap]\.\u202fm\./);
         // Opening the dialog proves React attached events to the server markup.
-        await card.click(); await expect(page.getByRole("dialog")).toBeVisible();
+        await card.getByRole("heading").first().click(); await expect(page.getByRole("dialog")).toBeVisible();
       }
       for (const path of ["/cafe", "/cocina"]) {
         await page.goto(path);

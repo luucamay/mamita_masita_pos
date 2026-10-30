@@ -14,6 +14,7 @@ import { discountLabel } from "@/lib/promotions";
 import { EmployeePurchaseBadge } from "@/components/orders/employee-purchase-badge";
 import { PurchaseActions } from "@/components/employee-purchases/purchase-actions";
 import type { EmployeePurchaseOrder } from "@/lib/employee-purchases";
+import { OrderTimers } from "./order-timers";
 
 type PaymentMethod = "cash" | "qr" | "card";
 
@@ -42,11 +43,13 @@ function escapeHtml(value: string) {
   })[character] ?? character);
 }
 
-export function OrdersList({ orders, closed = false, testCatalog }: { orders: OpenOrder[]; closed?: boolean; testCatalog?: { id: string; name: string; price: number }[] }) {
+export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSelected, selectionResolvedFor, onSelectionChange }: { orders: OpenOrder[]; closed?: boolean; testCatalog?: { id: string; name: string; price: number }[]; nowMs?:number; liveSelected?:OpenOrder|null; selectionResolvedFor?:string|null; onSelectionChange?:(id:string|null)=>void }) {
   const router = useRouter();
   const [displayOrders, setDisplayOrders] = useState(orders);
   const [editing, setEditing] = useState(false);
   const detailRequest = useRef(0);
+  const selectionEpoch = useRef(0);
+  const selectedId = useRef<string|null>(null);
   useEffect(() => setDisplayOrders(orders), [orders]);
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
@@ -56,12 +59,22 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  function closeDetails(){selectionEpoch.current++;detailRequest.current++;selectedId.current=null;setSelectedOrder(null);setEditing(false);}
+  useEffect(()=>{selectedId.current=selectedOrder?.id??null;onSelectionChange?.(selectedOrder?.id??null);if(!selectedOrder)detailRequest.current++;},[selectedOrder?.id,onSelectionChange]);
+  useEffect(()=>{
+    if(!selectedOrder||editing)return;
+    const next=liveSelected?.id===selectedOrder.id?liveSelected:orders.find(order=>order.id===selectedOrder.id);
+    if(next&&Number(next.revision??0)>=Number(selectedOrder.revision??0)){
+      setSelectedOrder(next);
+      if(next.items){detailRequest.current++;setDetailItems(next.items);setDetailsLoading(false);setDetailsError(null);}
+    }else if(!next&&selectionResolvedFor===selectedOrder.id){detailRequest.current++;closeDetails();setError("El pedido ya no está disponible.");}
+  },[orders,liveSelected,selectionResolvedFor,editing,selectedOrder?.id]);
 
   useEffect(() => {
     if (!selectedOrder) return;
 
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setSelectedOrder(null);
+      if (event.key === "Escape") closeDetails();
     }
 
     document.addEventListener("keydown", closeOnEscape);
@@ -70,12 +83,15 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
 
   async function showDetails(order: OpenOrder) {
     const requestId = ++detailRequest.current;
+    selectionEpoch.current++;selectedId.current=order.id;
     setEditing(false);
     setSelectedOrder(order);
     setSelectedPaymentMethod(null);
     setDetailItems([]);
     setDetailsError(null);
     setDetailsLoading(true);
+
+    if(order.items){setDetailItems(order.items);setDetailsLoading(false);return;}
 
     const { data, error: detailError } = await createClient()
       .from("order_items")
@@ -98,11 +114,13 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
     setDetailsLoading(false);
   }
 
-  function appliedChanges(snapshot: OrderSnapshot) {
-    setSelectedOrder(snapshot.order);
-    setDetailItems(snapshot.items);
-    setDisplayOrders((list) => list.map((order) => order.id === snapshot.order.id ? snapshot.order : order));
-    setEditing(false);
+  function appliedChanges(snapshot: OrderSnapshot, epoch: number) {
+    if (selectedId.current === snapshot.order.id && selectionEpoch.current === epoch) {
+      setSelectedOrder(current => current?.id === snapshot.order.id ? snapshot.order : current);
+      setDetailItems(snapshot.items);
+      setEditing(false);
+    }
+    setDisplayOrders((list) => list.map((order) => order.id === snapshot.order.id && Number(order.revision??0)<=snapshot.order.revision ? {...snapshot.order,items:snapshot.items} : order));
     setError(null);
     router.refresh();
   }
@@ -150,7 +168,7 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
     setPaymentOrderId(null);
     setSelectedPaymentMethod(null);
     // The refreshed closed list reads the actual paid_at/method from the server.
-    setSelectedOrder(null);
+    closeDetails();
     router.refresh();
     setWorkingId(null);
   }
@@ -203,7 +221,8 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
     printWindow.close();
   }
 
-  if (displayOrders.length === 0) {
+  const editorEpoch=selectionEpoch.current;
+  if (displayOrders.length === 0 && !selectedOrder) {
     return (
       <div className="rounded-2xl border border-dashed border-[var(--border)] bg-white px-6 py-16 text-center">
         <p className="font-medium">{closed ? "No hay pedidos cerrados" : "No hay pedidos abiertos"}</p>
@@ -215,15 +234,16 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
   }
 
   return (
-    <div className="space-y-3">
+    <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
       {error ? (
-        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+        <p className="col-span-full rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
       ) : null}
       {displayOrders.map((order) => {
         const delivered = order.status === "entregado";
         return (
            <article
              key={order.id}
+             data-order-id={order.id}
              role="button"
              tabIndex={0}
              onClick={() => showDetails(order)}
@@ -242,14 +262,14 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
                  : "border-orange-200 bg-orange-50/70"
             }`}
           >
-             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+             <div className="flex flex-col gap-4">
                <div>
                  {closed ? (
                    <>
                      <div className="flex flex-wrap items-center gap-3">
                        <h2 className="font-semibold">Mesa {order.table_number}</h2>
                        <span className="text-sm text-[var(--muted)]"># {order.order_number}</span>
-                       <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium capitalize">
+                       <span data-testid="order-status" className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium capitalize">
                          {order.status}
                        </span>
                      </div>
@@ -270,6 +290,7 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
                      </div>
                    </div>
                  )}
+                 {!closed?<div className="mt-3 flex flex-wrap items-center gap-2"><span data-testid="order-status" className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold capitalize text-orange-900">{order.status}</span>{order.customer_name?<span className="break-words text-sm text-[var(--muted)]">{order.customer_name}</span>:null}</div>:null}
                  {closed ? (
                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
                      {order.delivered_at ? <span>Entregado: {formatDate(order.delivered_at)}</span> : null}
@@ -324,13 +345,13 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
                      Pagar
                    </button>
                   ) : null}
-                 {closed || delivered || order.purchase_type==="employee" ? (
-                   <p className={closed ? "font-semibold" : "text-lg font-bold"}>
+                   <p data-testid="order-total" className="ml-auto text-lg font-bold tabular-nums">
                      {formatMoney(order.total)}
                    </p>
-                 ) : null}
                </div>
             </div>
+            {order.items?<ul aria-label="Productos del pedido" className="mt-4 space-y-2 border-t border-[var(--border)] pt-3 text-sm">{order.items.filter(item=>item.status!=="voided").map(item=><li key={item.id} className="flex items-start justify-between gap-2"><span className="break-words">{item.quantity} × {item.item_name}</span><span className="shrink-0 text-xs text-[var(--muted)]">{item.status==="delivered"?"Entregado":"Pendiente"}</span></li>)}</ul>:null}
+            {nowMs!==undefined?<div className="mt-4"><OrderTimers order={order} now={nowMs}/></div>:null}
            </article>
          );
        })}
@@ -338,7 +359,7 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6"
           role="presentation"
-          onClick={() => setSelectedOrder(null)}
+          onClick={() => closeDetails()}
         >
           <section
             role="dialog"
@@ -366,7 +387,7 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
                 <button
                   type="button"
                   aria-label="Cerrar detalle"
-                  onClick={() => setSelectedOrder(null)}
+                  onClick={() => closeDetails()}
                   className="rounded-xl px-3 py-1 text-2xl leading-none text-[var(--muted)] hover:bg-gray-100"
                 >
                   ×
@@ -395,7 +416,8 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
                 </div>
             </div>
 
-            {editing ? <OrderEditor orderId={selectedOrder.id} catalog={testCatalog} onSaved={appliedChanges} onCancel={() => setEditing(false)} /> : detailsLoading ? (
+            {editing && liveSelected?.id===selectedOrder.id && Number(liveSelected.revision??0)!==Number(selectedOrder.revision??0)?<p role="status" className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">El pedido cambió en otra sesión. Tu edición se conserva; descarta y recarga para revisar los cambios antes de guardar.</p>:null}
+            {editing ? <OrderEditor orderId={selectedOrder.id} catalog={testCatalog} onSaved={snapshot=>appliedChanges(snapshot,editorEpoch)} onCancel={() => setEditing(false)} /> : detailsLoading ? (
               <p className="py-10 text-center text-sm text-[var(--muted)]">Cargando productos...</p>
             ) : detailsError ? (
               <p className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -425,7 +447,7 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
                 </div>
                  <div className="mt-5">
                    {!closed && selectedOrder.purchase_type!=="employee" && orderIsEditable(selectedOrder) ? <button type="button" onClick={() => setEditing(true)} className="mb-3 min-h-11 w-full rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 font-semibold text-orange-800">Editar pedido</button> : null}
-                   {selectedOrder.purchase_type==="employee"&&!closed ? <PurchaseActions order={selectedOrder as EmployeePurchaseOrder} canCollect onSaved={()=>{setSelectedOrder(null);router.refresh();}} onReload={()=>{setSelectedOrder(null);router.refresh();}}/> : closed || selectedOrder.status === "archivado" ? (
+                   {selectedOrder.purchase_type==="employee"&&!closed&&selectedOrder.status!=="archivado" ? <PurchaseActions order={selectedOrder as EmployeePurchaseOrder} canCollect onSaved={()=>{closeDetails();router.refresh();}} onReload={()=>{closeDetails();router.refresh();}}/> : closed || selectedOrder.status === "archivado" ? (
                      <div className="w-full rounded-xl bg-gray-100 px-4 py-3 text-center text-sm font-semibold text-gray-600">
                        Cerrado
                      </div>

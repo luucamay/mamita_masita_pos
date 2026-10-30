@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { OrdersList } from "@/components/orders/orders-list";
-import { getClosedOrders, getOpenOrders } from "@/lib/orders";
+import { LiveOrders } from "@/components/orders/live-orders";
+import { getOrderBoard } from "@/lib/order-board-data";
 
 export default async function PedidosPage({
   searchParams,
@@ -8,16 +8,15 @@ export default async function PedidosPage({
   searchParams: Promise<{ view?: string }>;
 }) {
   const view = (await searchParams).view === "closed" ? "closed" : "active";
-  const { orders, error } = view === "closed" ? await getClosedOrders() : await getOpenOrders();
+  const { board, error } = await getOrderBoard(view === "closed");
 
   return (
     <div className="px-6 py-6 lg:px-8">
       <header className="mb-6">
-        <p className="text-sm font-medium text-orange-600">Operación</p>
         <h1 className="text-2xl font-semibold">Pedidos</h1>
         <p className="mt-1 text-sm text-[var(--muted)]">
           {view === "active"
-            ? "Pedidos confirmados y pendientes de entrega."
+            ? "Pedidos en vivo, productos y tiempo desde que se abrió la cuenta."
             : "Pedidos pagados y cerrados."}
         </p>
         <nav
@@ -44,12 +43,12 @@ export default async function PedidosPage({
           </Link>
         </nav>
       </header>
-      {error ? (
+      {error || !board ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           No se pudieron cargar los pedidos: {error}
         </div>
       ) : (
-        <OrdersList orders={orders} closed={view === "closed"} />
+        <LiveOrders key={view} initial={board} closed={view === "closed"} />
       )}
     </div>
   );

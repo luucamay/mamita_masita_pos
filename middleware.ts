@@ -45,6 +45,11 @@ export async function middleware(request: NextRequest) {
   const isLoginPage = request.nextUrl.pathname === "/login";
 
   if (!data?.claims && !isLoginPage) {
+    if (request.nextUrl.pathname === "/api/orders/live") {
+      const denied = NextResponse.json({ error: "Sesión no disponible", redirectTo: "/login?reason=inactive" }, { status: 401, headers: { "Cache-Control": "private, no-store" } });
+      for (const cookie of response.cookies.getAll()) denied.cookies.set(cookie);
+      return denied;
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", request.nextUrl.pathname);

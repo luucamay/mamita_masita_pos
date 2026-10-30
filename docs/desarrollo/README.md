@@ -1,5 +1,7 @@
 # Desarrollo de mejoras de octubre de 2026
 
+**Estado vigente P13, 30/10:** Pedidos en vivo con tarjetas, productos y tiempos de Preparación/Cuenta abierta según D13 confirmado. Migración `20261030102045` aplicada. Prueba real de dos sesiones aprobada y datos QA retirados, con huellas de las diez tablas iguales a la línea base. Ver [P13](P13_PEDIDOS_TIEMPO_REAL.md). Sin despliegue; revisión de Omar pendiente. P14 no iniciado.
+
 **Estado vigente P11/P12, 30/10:** admin inicia en Historial y reportes con hoy y tabla por producto. Menú operativo de admin en `/menu`; Atención conserva `/`. Exportación actual XLSX real con formato acordado, filtros, totales y empleados identificados. Se retiró CSV. Ambas entregas reutilizan P09, sin migraciones ni escrituras de ventas. Ver [P11](P11_DASHBOARD_ADMIN.md), [P12](P12_EXPORTACION_EXCEL.md). Pendiente revisión de Omar y muestra; sin despliegue. Las notas inferiores son históricas.
 
 **Estado vigente, 30/10:** P09/P10 implementados después de P07/P08; migración P09 `20261030041017` aplicada, P10 sin cambios adicionales en base. Reportes inicia solo con hoy y permite consultar semana/mes/fecha. Los cuadros Total/Efectivo/QR corresponden al período/tipo de compra y el pago filtra el detalle. Ver [P09](P09_PERIODOS_REPORTES.md), [P10](P10_SUMATORIAS_CAJA.md). Sin despliegue; revisión funcional pendiente. El estado del 29/10 de abajo es histórico.
