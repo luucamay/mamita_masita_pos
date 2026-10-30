@@ -228,7 +228,7 @@ try {
     const final = read(`select status||','||total||','||(select count(*) from public.order_payments p where p.order_id=o.id) from public.orders o where id='${racingOrder}'`);
     assert(["confirmado,79.00,0", "archivado,59.00,1"].includes(final), final);
   });
-  if (["p04", "p05", "p06"].includes(process.argv[2])) {
+  if (["p04", "p05", "p06", "p07"].includes(process.argv[2])) {
     const migration = migrations.find((file) => file.endsWith("_p04_edit_orders.sql"));
     assert(migration);
     query(`begin; ${readFileSync(join(root, "supabase/migrations", migration), "utf8")} commit;`);
@@ -365,7 +365,7 @@ try {
       assert.equal(read("select count(*) from public.profiles where role='admin'"), "2");
     });
   }
-  if (process.argv[2] === "p06") {
+  if (["p06", "p07"].includes(process.argv[2])) {
     query(`create table auth.users(id uuid primary key,email text,raw_app_meta_data jsonb default '{}');`);
     const p05 = migrations.find((file) => file.endsWith("_p05_employee_access.sql"));
     query(readFileSync(join(root, "supabase/migrations", p05), "utf8"));
@@ -444,6 +444,80 @@ try {
     check("P06 concurrent administrators cannot overwrite a changed promotion", () => {
       assert.equal(attempts.filter((attempt) => attempt.status === 0).length, 1, JSON.stringify(attempts));
       assert.equal(read(`select count(*) from public.daily_promotions where promotion_date='${day}'`), "1");
+    });
+  }
+  if (process.argv[2] === "p07") {
+    const before = read("select md5(string_agg(to_jsonb(o)::text,'' order by id)) from public.orders o");
+    const previousReport = as("admin", "select coalesce(sum(total_sale_value),0) from public.v_sales_report_daily");
+    const migration = migrations.find((file) => file.endsWith("_p07_employee_purchases.sql"));
+    query(`begin; ${readFileSync(join(root, "supabase/migrations", migration), "utf8")} commit;`);
+    const lines = [{ menu_item_id: espresso, quantity: 1, expected_unit_price: 10 }, { menu_item_id: focaccia, quantity: 1, expected_unit_price: 49 }];
+    const create = (items = lines, request = randomUUID()) => `select public.create_employee_purchase('${JSON.stringify(items)}','${request}')`;
+    const get = (order) => JSON.parse(read(`select private.employee_purchase_snapshot('${order}')`));
+    const pay = (order, method = "cash", revision = get(order).order.revision) => `select public.checkout_employee_purchase('${order}','${method}',${revision})`;
+    const cancel = (order, revision = get(order).order.revision) => `select public.cancel_employee_purchase('${order}',${revision})`;
+    const purchases = {};
+    check("P07 preserves old rows and existing consolidated report amounts", () => {
+      assert.equal(read("select md5(string_agg((to_jsonb(o)-'employee_cancelled_at')::text,'' order by id)) from public.orders o"), before);
+      assert.equal(as("admin", "select coalesce(sum(total_sale_value),0) from public.v_sales_report_daily"), previousReport);
+    });
+    check("P07 every active role buys only for itself at fixed twenty percent without stacking", () => {
+      const q = JSON.parse(as("staff", "select public.get_order_pricing_context()"));
+      as("admin", `select public.admin_save_daily_promotion('${q.date}',6000,true,${q.revision})`);
+      for (const role of ["admin","staff","cook","barista"]) {
+        const snapshot = JSON.parse(as(role, create(lines.map((line) => ({...line,buyer_employee_id:id.admin,discount_bps:9999})))));
+        purchases[role] = snapshot.order.id;
+        assert.equal(snapshot.order.buyer_employee_id,id[role]);assert.equal(snapshot.order.created_by,id[role]);assert.equal(snapshot.order.discount_bps,2000);
+        assert.equal(Number(snapshot.order.total),47.2);assert.equal(Number(snapshot.order.discount_amount),11.8);
+        assert.equal(snapshot.order.promotion_date,null);
+        assert.equal(read(`select count(*) from public.print_jobs where order_id='${snapshot.order.id}'`),"0");
+        assert.equal(as(role,`select count(*) from public.v_cafe_queue where order_id='${snapshot.order.id}'`),"0");
+        assert.equal(as(role,`select count(*) from public.v_kitchen_tickets where order_id='${snapshot.order.id}'`),"0");
+      }
+      const customer = createOrder(); assert.equal(read(`select purchase_type||','||discount_bps||','||total from public.orders where id='${customer}'`),"customer,6000,23.60");
+    });
+    check("P07 inactive and unauthorized users cannot create, browse or confirm purchases", () => {
+      for (const role of ["anon","inactive","missing"]) {denied(role,create(),"42501");denied(role,"select public.list_employee_purchases()","42501");}
+      for (const role of ["cook","barista"]) {denied(role,pay(purchases[role]),"42501");denied(role,"select public.list_employee_purchases('all')","42501");}
+      const mine=JSON.parse(as("cook","select public.list_employee_purchases()"));assert(mine.purchases.every((p)=>p.order.buyer_employee_id===id.cook));
+      assert.equal(as("cook",`select count(*) from public.orders where id='${purchases.barista}'`),"0");
+      denied("cook",cancel(purchases.barista),"42501");
+    });
+    check("P07 all customer mutators reject personal purchases", () => {
+      const order = purchases.staff, snapshot=get(order), line=snapshot.items[0].id;
+      for (const sql of [`select public.add_order_item('${order}','${espresso}',1)`,`select public.update_order_item('${line}',2)`,`select public.confirm_order('${order}')`,`select public.mark_order_delivered('${order}')`,`select public.mark_order_item_delivered('${line}')`,`select public.checkout_order('${order}','cash')`,`select public.edit_order('${order}',${snapshot.order.revision},'[{"action":"add","menu_item_id":"${espresso}","quantity":1,"expected_unit_price":10}]','${randomUUID()}')`]) denied("staff",sql);
+      assert.equal(Number(get(order).order.total),47.2);
+    });
+    check("P07 creation retries are idempotent and invalid catalog/quantities leave no orders", () => {
+      const request=randomUUID();const first=JSON.parse(as("cook",create(lines,request)));const retry=JSON.parse(as("cook",create(lines,request)));assert.equal(first.order.id,retry.order.id);
+      denied("barista",create(lines,request),"42501");
+      const before=read("select count(*) from public.orders");
+      denied("cook",create([{...lines[0],quantity:1.2}]),"22023");denied("cook",create([{...lines[0],expected_unit_price:1}]),"40001");
+      assert.equal(read("select count(*) from public.orders"),before);
+    });
+    check("P07 cashier settlement records real receiver and includes marked net income in every report", () => {
+      const order=purchases.cook,old=get(order).order;
+      denied("staff",pay(order,"cash",old.revision+1),"40001");
+      as("staff",pay(order,"qr"));as("staff",pay(order,"qr",old.revision));
+      const after=get(order);assert.equal(after.order.status,"archivado");assert.equal(after.order.paid_by,id.staff);assert.equal(after.order.created_at,old.created_at);
+      assert.equal(read(`select count(*) from public.order_payments where order_id='${order}'`),"1");
+      for(const period of ["daily","weekly","monthly"])assert.equal(as("admin",`select sum(total_sale_value) from public.v_sales_report_${period} where purchase_type='employee' and buyer_employee_id='${id.cook}'`),"47.20");
+      denied("staff",pay(order,"cash"));denied("cook",cancel(order));
+    });
+    check("P07 cancellation keeps history, produces no income, and pending buyer deactivation prevents settlement", () => {
+      const order=purchases.barista;as("barista",cancel(order));as("barista",cancel(order));
+      assert(get(order).order.employee_cancelled_at);assert.equal(Number(get(order).order.total),47.2);denied("admin",pay(order));
+      assert.equal(read(`select count(*) from public.order_payments where order_id='${order}'`),"0");
+      query(`update public.profiles set active=false where id='${id.staff}'`);denied("admin",pay(purchases.staff));denied("staff",create(),"42501");query(`update public.profiles set active=true where id='${id.staff}'`);
+    });
+    const marraqueta=randomUUID();query(`insert into public.menu_items(id,category_id,name,price) values('${marraqueta}','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','Marraqueta QA',2.5)`);
+    const tiny=JSON.parse(as("barista",create([{menu_item_id:marraqueta,quantity:3,expected_unit_price:2.5}])));assert.equal(Number(tiny.order.total),6);
+    const concurrent=JSON.parse(as("barista",create())).order.id;const revision=get(concurrent).order.revision;
+    const attempts=await Promise.all([concurrently(asSql("admin",pay(concurrent,"cash",revision))),concurrently(asSql("staff",pay(concurrent,"cash",revision)))]);
+    check("P07 simultaneous checkout creates one payment and keyset history has no repeated purchases",()=>{
+      assert(attempts.every((a)=>a.status===0),JSON.stringify(attempts));assert.equal(read(`select count(*) from public.order_payments where order_id='${concurrent}'`),"1");
+      const first=JSON.parse(as("barista","select public.list_employee_purchases('mine',null,null,1)"));assert.equal(first.purchases.length,1);assert.equal(first.has_more,true);
+      const last=first.purchases[0].order;const second=JSON.parse(as("barista",`select public.list_employee_purchases('mine','${last.created_at}','${last.id}',1)`));assert.notEqual(first.purchases[0].order.id,second.purchases[0].order.id);
     });
   }
   success = true;

@@ -50,6 +50,10 @@ export type DraftOrderLine = {
 };
 
 export type OpenOrder = {
+  purchase_type?: PurchaseType;
+  buyer_employee_id?: string | null;
+  employee_cancelled_at?: string | null;
+  revision?: number;
   subtotal?: number | string;
   discount_bps?: number;
   discount_amount?: number | string;

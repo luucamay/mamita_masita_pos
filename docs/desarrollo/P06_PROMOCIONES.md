@@ -57,4 +57,4 @@ Los asesores conservan solamente los avisos previos de [RLS sin políticas](http
 6. Volver a Promos, desmarcar Promoción activa y guardar para terminar la revisión. El menú vuelve al precio normal; los pedidos anteriores mantienen su descuento.
 7. Probar una fecha futura: no cambia el precio de hoy. Un empleado de Atención no debe ver Promos ni poder programar descuentos.
 
-El sistema conserva las ventas que confirmes manualmente; las pruebas automáticas descritas evitaron dejar ventas ficticias persistentes. P07 no se inició.
+El sistema conserva las ventas que confirmes manualmente; las pruebas automáticas descritas evitaron dejar ventas ficticias persistentes. Actualización posterior: [P07](P07_COMPRAS_EMPLEADOS.md) y [P08](P08_PERFIL.md) implementados, con 20 % fijo propio sin acumulación con la promoción del día.

@@ -4,6 +4,8 @@ import { requireRoles } from "@/lib/auth";
 export type ReportPeriod = "daily" | "weekly" | "monthly";
 
 export type SalesReportRow = {
+  purchase_type?: "customer" | "employee";
+  buyer_employee_id?: string | null;
   date: string;
   order_time: string;
   product_or_service: string;
@@ -27,7 +29,7 @@ export async function getSalesReport(period: ReportPeriod): Promise<{
   const supabase = await createClient();
   const { data, error } = await supabase
     .from(reportViews[period])
-    .select("date, order_time, product_or_service, quantity, unit_price, total_sale_value, payment_method")
+    .select("date, order_time, product_or_service, quantity, unit_price, total_sale_value, payment_method, purchase_type, buyer_employee_id")
     .order("order_time", { ascending: false })
     .order("product_or_service", { ascending: true });
 

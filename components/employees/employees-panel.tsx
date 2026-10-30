@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
 import type { Employee } from "@/lib/employee-provision";
 
 const roles = { admin: "Administrador", staff: "Atención", cook: "Cocina", barista: "Barista" };
@@ -69,6 +70,7 @@ export function EmployeesPanel({ initialEmployees, actorId, initialError }: { in
       <div><p className="mb-1 text-sm font-medium text-orange-700">Administración</p><h1 className="text-3xl font-semibold tracking-tight">Empleados</h1><p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]">Gestiona quién puede acceder a la cafetería. Desactivar conserva su cuenta y el historial de sus pedidos.</p></div>
       <div className="flex flex-wrap gap-2"><button type="button" disabled={!!busy} onClick={() => void load()} className={secondary}>{busy === "load" ? "Actualizando…" : "Actualizar"}</button><button type="button" disabled={!ready || !!busy} onClick={() => { setShowForm((value) => !value); setPassword(""); request.current = null; }} className={primary}>{showForm ? "Cerrar formulario" : "Agregar empleado"}</button></div>
     </header>
+    <Link href="/compras-empleados" className="inline-flex min-h-11 items-center text-sm font-semibold text-orange-800">Ver compras y cobros del equipo</Link>
     {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-800">{error}</p> : null}
     {notice ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">{notice}</p> : null}
     {showForm && ready ? <form aria-label="Agregar empleado" onSubmit={create} className="space-y-4 rounded-2xl border border-orange-200 bg-orange-50/50 p-5">

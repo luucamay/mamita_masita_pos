@@ -11,6 +11,9 @@ import { orderIsEditable, type OrderLine, type OrderSnapshot } from "@/lib/order
 import { formatOrderDate as formatDate } from "@/lib/date-time";
 import { DiscountBadge } from "@/components/orders/discount-badge";
 import { discountLabel } from "@/lib/promotions";
+import { EmployeePurchaseBadge } from "@/components/orders/employee-purchase-badge";
+import { PurchaseActions } from "@/components/employee-purchases/purchase-actions";
+import type { EmployeePurchaseOrder } from "@/lib/employee-purchases";
 
 type PaymentMethod = "cash" | "qr" | "card";
 
@@ -185,6 +188,7 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
             <p><strong>Mesa:</strong> ${escapeHtml(order.table_number)}</p>
             ${order.customer_name ? `<p><strong>Cliente:</strong> ${escapeHtml(order.customer_name)}</p>` : ""}
             <p><strong>Estado:</strong> ${escapeHtml(order.status)}</p>
+            ${order.purchase_type==="employee"?"<p><strong>Compra de empleado · descuento fijo 20 %</strong></p>":""}
           </div>
           <ul>
             ${items.filter((item) => item.status !== "voided").map((item) => `<li><span class="item">${item.quantity} × ${escapeHtml(item.item_name)}</span><span class="price">${escapeHtml(formatMoney(item.net_total ?? item.line_total))}</span></li>`).join("")}
@@ -276,9 +280,10 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
                <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
                  <div className="flex flex-wrap items-center gap-2">
                    <PaymentBadge order={order} />
+                   {order.purchase_type==="employee"?<EmployeePurchaseBadge/>:null}
                    <DiscountBadge bps={order.discount_bps} />
                  </div>
-                 {!closed && !delivered ? (
+                 {!closed && order.purchase_type==="employee" ? <button type="button" onClick={event=>{event.stopPropagation();void showDetails(order);}} className="min-h-11 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white">Cobrar compra</button> : !closed && !delivered ? (
                    <button
                      type="button"
                      disabled={workingId === order.id}
@@ -319,7 +324,7 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
                      Pagar
                    </button>
                   ) : null}
-                 {closed || delivered ? (
+                 {closed || delivered || order.purchase_type==="employee" ? (
                    <p className={closed ? "font-semibold" : "text-lg font-bold"}>
                      {formatMoney(order.total)}
                    </p>
@@ -386,7 +391,7 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
               ) : null}
                 <div>
                   <p className="text-[var(--muted)]">Pago</p>
-                  <div className="mt-1"><PaymentBadge order={selectedOrder} /></div>
+                  <div className="mt-1 flex flex-wrap gap-2"><PaymentBadge order={selectedOrder} />{selectedOrder.purchase_type==="employee"?<EmployeePurchaseBadge/>:null}</div>
                 </div>
             </div>
 
@@ -419,8 +424,8 @@ export function OrdersList({ orders, closed = false, testCatalog }: { orders: Op
                   <span className="text-lg font-semibold">{formatMoney(selectedOrder.total)}</span>
                 </div>
                  <div className="mt-5">
-                   {!closed && orderIsEditable(selectedOrder) ? <button type="button" onClick={() => setEditing(true)} className="mb-3 min-h-11 w-full rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 font-semibold text-orange-800">Editar pedido</button> : null}
-                   {closed || selectedOrder.status === "archivado" ? (
+                   {!closed && selectedOrder.purchase_type!=="employee" && orderIsEditable(selectedOrder) ? <button type="button" onClick={() => setEditing(true)} className="mb-3 min-h-11 w-full rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 font-semibold text-orange-800">Editar pedido</button> : null}
+                   {selectedOrder.purchase_type==="employee"&&!closed ? <PurchaseActions order={selectedOrder as EmployeePurchaseOrder} canCollect onSaved={()=>{setSelectedOrder(null);router.refresh();}} onReload={()=>{setSelectedOrder(null);router.refresh();}}/> : closed || selectedOrder.status === "archivado" ? (
                      <div className="w-full rounded-xl bg-gray-100 px-4 py-3 text-center text-sm font-semibold text-gray-600">
                        Cerrado
                      </div>

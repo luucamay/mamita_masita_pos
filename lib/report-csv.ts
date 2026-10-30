@@ -13,6 +13,7 @@ export const salesReportCsvHeaders = [
   "Unit Price",
   "Total Sale Value",
   "Payment Method",
+  "Purchase Type",
 ] as const;
 
 function escapeCsvValue(value: string | number) {
@@ -29,6 +30,7 @@ export function createSalesReportCsv(rows: SalesReportRow[]) {
       row.unit_price,
       row.total_sale_value,
       row.payment_method ? paymentLabels[row.payment_method] : "Sin registro",
+      row.purchase_type === "employee" ? "Compra de empleado" : "Cliente",
     ]
       .map(escapeCsvValue)
       .join(","),

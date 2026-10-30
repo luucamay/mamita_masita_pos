@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSalesReport, type ReportPeriod } from "@/lib/reports";
+import { EmployeePurchaseBadge } from "@/components/orders/employee-purchase-badge";
 
 const periods: { value: ReportPeriod; label: string }[] = [
   { value: "daily", label: "Diario" },
@@ -109,6 +110,7 @@ export default async function HistorialPage({
                   <th className="px-4 py-3 text-right font-semibold">Precio unitario</th>
                   <th className="px-4 py-3 text-right font-semibold">Venta total</th>
                   <th className="px-4 py-3 font-semibold">Método de pago</th>
+                  <th className="px-4 py-3 font-semibold">Tipo de compra</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -121,6 +123,7 @@ export default async function HistorialPage({
                     <td className="px-4 py-3 text-right">{formatMoney(row.unit_price)}</td>
                     <td className="px-4 py-3 text-right font-semibold">{formatMoney(row.total_sale_value)}</td>
                     <td className="px-4 py-3">{row.payment_method ? paymentLabels[row.payment_method] : "Sin registro"}</td>
+                    <td className="px-4 py-3">{row.purchase_type==="employee"?<EmployeePurchaseBadge/>:"Cliente"}</td>
                   </tr>
                 ))}
               </tbody>

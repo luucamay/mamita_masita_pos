@@ -24,6 +24,8 @@ const navItems = [
   { href: "/menu-admin", label: "Admin menú", icon: SettingsIcon },
   { href: "/empleados", label: "Empleados", icon: EmployeesIcon },
   { href: "/promociones", label: "Promos", icon: PromotionsIcon },
+  { href: "/perfil", label: "Perfil", icon: EmployeesIcon },
+  { href: "/compras-empleados", label: "Cobros equipo", icon: OrdersIcon },
 ];
 
 const roleMarkers: Record<string, string> = {
@@ -108,7 +110,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       ) : null}
       <aside
         id="mobile-navigation"
-        className={`fixed inset-y-0 left-0 z-40 flex h-screen w-[88px] flex-col items-center gap-3 bg-[var(--sidebar)] px-3 py-5 text-[var(--sidebar-text)] transition-transform md:sticky md:inset-y-auto md:top-0 md:z-auto md:translate-x-0 md:transition-none ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-screen w-[88px] flex-col items-center gap-3 bg-[var(--sidebar)] px-3 py-5 text-[var(--sidebar-text)] transition-transform motion-reduce:transition-none md:sticky md:inset-y-auto md:top-0 md:z-auto md:translate-x-0 md:transition-none ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >

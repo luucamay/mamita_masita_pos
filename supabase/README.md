@@ -1,5 +1,7 @@
 # Supabase Backend
 
+P07 employee purchases (`20261030014210`) was applied on October 29 (Bolivia date). Do not reapply it. It adds fixed 20% personal purchases with admin/staff payment approval, private request idempotency, owner history and marked consolidated reporting. P08 profile uses existing fields and has no additional migration. See [P07](../docs/desarrollo/P07_COMPRAS_EMPLEADOS.md) and [P08](../docs/desarrollo/P08_PERFIL.md). `pnpm test:p07:db` runs synthetic PostgreSQL tests locally; no shared sales are committed by that runner.
+
 ## P01 — October 2026
 
 Use `pnpm test:p01:db` for the current authorization/checkout contract, in a temporary localhost PostgreSQL cluster with synthetic fixtures. The original SQL tests below describe the earlier MVP and include direct writes that P01 intentionally prohibits. Never load the original seed into the shared production database.

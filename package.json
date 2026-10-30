@@ -21,6 +21,9 @@
     "test:p06": "node --experimental-strip-types --test tests/promotions.test.ts",
     "test:p06:db": "node scripts/test-p01-database.mjs p06",
     "test:p06:ui": "playwright test --config playwright.p06.config.ts",
+    "test:p07:db": "node scripts/test-p01-database.mjs p07",
+    "test:p07:ui": "playwright test --config playwright.p07.config.ts",
+    "test:p08": "playwright test --config playwright.p08.config.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
