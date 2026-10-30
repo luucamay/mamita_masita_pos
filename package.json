@@ -37,7 +37,10 @@
     "test:p13:db": "node scripts/test-p01-database.mjs p13",
     "test:p14": "node --experimental-strip-types --test tests/performance.test.ts",
     "test:p14:db": "node scripts/test-p01-database.mjs p14",
-    "test:p14:ui": "playwright test --config playwright.p14.config.ts"
+    "test:p14:ui": "playwright test --config playwright.p14.config.ts",
+    "test:compact": "node --experimental-strip-types --test tests/customer-flows.test.ts tests/payment.test.ts tests/report-xlsx.test.ts",
+    "test:compact:db": "node scripts/test-p01-database.mjs compact",
+    "test:compact:ui": "playwright test --config playwright.compact.config.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

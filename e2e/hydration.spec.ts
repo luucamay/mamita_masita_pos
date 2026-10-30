@@ -15,7 +15,7 @@ for (const timezoneId of ["America/La_Paz", "Asia/Tokyo"]) {
       await page.getByRole("button", { name: "Ingresar", exact: true }).click();
       await expect(page).toHaveURL("/pedidos");
       // A document reload exercises SSR hydration, rather than only a client transition.
-      for (const path of ["/pedidos", "/pedidos?view=closed"]) {
+      for (const path of ["/pedidos", "/pedidos?view=closed&all=1"]) {
         const response = await page.goto(path);
         const html = await response!.text();
         const serverDates = [...html.matchAll(/\d{2}\/\d{2}, \d{2}:\d{2} [ap]\. m\./g)].map((match) => match[0]);

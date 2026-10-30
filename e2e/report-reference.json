@@ -1,23 +1,23 @@
 {
   "daily": {
-    "total": 54,
+    "total": 54.0,
     "orders": 1,
     "units": 4,
-    "cash": 54,
-    "qr": 0
+    "cash": 54.0,
+    "qr": 0.0
   },
   "weekly": {
-    "total": 689,
+    "total": 689.0,
     "orders": 11,
     "units": 40,
-    "cash": 309,
-    "qr": 380
+    "cash": 309.0,
+    "qr": 380.0
   },
   "monthly": {
-    "total": 6832,
-    "orders": 150,
-    "units": 442,
-    "cash": 3471.5,
-    "qr": 3360.5
+    "total": 7021.0,
+    "orders": 153,
+    "units": 453,
+    "cash": 3573.5,
+    "qr": 3447.5
   }
 }

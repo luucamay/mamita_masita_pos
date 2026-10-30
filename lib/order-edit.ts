@@ -17,6 +17,6 @@ export function normalizeOrderSnapshot(raw: { order: Record<string, unknown>; it
   return { order: { ...raw.order, revision: Number(raw.order.revision ?? 0), total: Number(raw.order.total ?? 0), item_count: items.filter((item) => item.status !== "voided").length } as EditableOrder, items };
 }
 
-export function orderIsEditable(order: Pick<OpenOrder, "status" | "paid_at">) {
-  return !order.paid_at && ["pendiente", "confirmado", "entregado"].includes(order.status);
+export function orderIsEditable(order: Pick<OpenOrder, "status" | "paid_at"> & Partial<Pick<OpenOrder,"payment_methods"|"delivered_at"|"purchase_type">>) {
+  return ["pendiente", "confirmado", "entregado"].includes(order.status) && (!order.paid_at || Boolean(order.payment_methods?.length && order.status==="confirmado" && !order.delivered_at && order.purchase_type!=="employee"));
 }

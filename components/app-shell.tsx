@@ -169,14 +169,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         </button>
       </aside>
       <main className="min-w-0 flex-1">
-        <header className="flex items-center border-b border-[var(--border)] bg-[var(--surface)] px-4 py-3 md:hidden">
+        <header className="sticky top-0 z-30 flex h-13 items-center border-b border-[var(--border)] bg-[var(--surface)] px-3">
           <button
             type="button"
             aria-label="Abrir menú"
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-navigation"
             onClick={() => setMobileMenuOpen(true)}
-            className="rounded-lg p-2 text-[var(--ink)] hover:bg-[var(--bg)]"
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-[var(--ink)] hover:bg-[var(--bg)] md:hidden"
           >
             <MenuIcon className="h-6 w-6" />
           </button>
@@ -186,6 +186,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             className="ml-2 h-8 w-8 object-contain"
           />
           <span className="ml-2 text-sm font-semibold">Mamita Masita</span>
+          <button type="button" aria-label="Actualizar página" title="Actualizar" onClick={()=>{if(window.dispatchEvent(new Event("mamita:refresh",{cancelable:true})))router.refresh();}} className="ml-auto flex h-11 w-11 items-center justify-center rounded-lg text-[var(--ink)] hover:bg-orange-50"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 8a7 7 0 0 1 12-2l2 3M4 15l2 3a7 7 0 0 0 12-2"/></svg></button>
         </header>
         {children}
       </main>

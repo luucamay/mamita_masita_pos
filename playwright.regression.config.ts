@@ -2,7 +2,7 @@ import { defineConfig } from "@playwright/test";
 import access from "./playwright.access.config";
 export default defineConfig({
   ...access,
-  testMatch: ["access-readonly.spec.ts", "menu-search.spec.ts", "modules.spec.ts", "hydration.spec.ts", "promotions.spec.ts", "employee-purchases.spec.ts", "profile.spec.ts", "reports.spec.ts", "dashboard.spec.ts", "excel-export.spec.ts", "order-board.spec.ts", "performance.spec.ts"],
+  testMatch: ["access-readonly.spec.ts", "menu-search.spec.ts", "modules.spec.ts", "hydration.spec.ts", "promotions.spec.ts", "employee-purchases.spec.ts", "profile.spec.ts", "reports.spec.ts", "dashboard.spec.ts", "excel-export.spec.ts", "order-board.spec.ts", "performance.spec.ts", "compact.spec.ts"],
   timeout: 60_000,
   expect: { timeout: 15_000 },
   outputDir: "./test-results/regression",

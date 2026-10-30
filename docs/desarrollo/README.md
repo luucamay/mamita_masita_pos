@@ -1,5 +1,7 @@
 # Desarrollo de mejoras de octubre de 2026
 
+**Actualización posterior a P14, 30/10:** interfaz compacta, categorías desplegables, mesa flexible y actualización centralizada. La regla vigente es Mesa al finalizar / Para llevar al registrar; incluye ajustes y devoluciones. Cerrados inicia por hoy y permite fecha/Todo el historial. Migraciones `20261030124536`, `20261030124544` y `20261030130832` aplicadas. Ver [guía, reglas y pruebas](AJUSTES_COMPACTOS_Y_FLUJOS_2026-10-30.md). Sin despliegue; revisión de Omar pendiente. Las notas inferiores son estados anteriores.
+
 **Estado vigente P14, 30/10:** lectura de Cerrados por páginas de 24, colas con actualización agrupada y respaldo de 30 segundos, comprobación Auth/perfil en paralelo y una verificación por petición API. Migración `20261030110916` aplicada; no modifica ventas ni RLS. Ver [P14](P14_RENDIMIENTO.md) para medidas antes/después, pruebas y guía. Sin despliegue; revisión de Omar pendiente. P15 no iniciado.
 
 **Estado vigente P13, 30/10:** Pedidos en vivo con tarjetas, productos y tiempos de Preparación/Cuenta abierta según D13 confirmado. Migración `20261030102045` aplicada. Prueba real de dos sesiones aprobada y datos QA retirados, con huellas de las diez tablas iguales a la línea base. Ver [P13](P13_PEDIDOS_TIEMPO_REAL.md). Sin despliegue; revisión de Omar pendiente. P14 no iniciado.

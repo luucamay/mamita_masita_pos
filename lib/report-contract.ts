@@ -13,11 +13,11 @@ export type SalesReport = {
 export function normalizeSalesReport(value: unknown): SalesReport {
   if (!value || typeof value !== "object") throw new Error("Respuesta de reporte inválida");
   const report = value as SalesReport;
-  const number = (input: unknown) => {
-    if (typeof input !== "number" && typeof input !== "string" || input === "" || !Number.isFinite(Number(input)) || Number(input) < 0) throw new Error("Importe de reporte inválido");
+  const number = (input: unknown, nonnegative=false) => {
+    if (typeof input !== "number" && typeof input !== "string" || input === "" || !Number.isFinite(Number(input)) || nonnegative && Number(input) < 0) throw new Error("Importe de reporte inválido");
     return Number(input);
   };
   if (!report.range?.start_date || !report.summary || !report.filtered || !Array.isArray(report.rows)) throw new Error("Respuesta de reporte incompleta");
-  const method = (entry: MethodTotal) => ({ amount: number(entry.amount), orders: number(entry.orders) });
-  return { ...report, summary: { ...report.summary, total: number(report.summary.total), orders: number(report.summary.orders), units: number(report.summary.units), cash: method(report.summary.cash), qr: method(report.summary.qr), other: method(report.summary.other) }, filtered: { total: number(report.filtered.total), orders: number(report.filtered.orders), units: number(report.filtered.units) }, rows: report.rows.map(row => ({ ...row, quantity: number(row.quantity), unit_price: row.unit_price === null ? null : number(row.unit_price), total_sale_value: number(row.total_sale_value) })) };
+  const method = (entry: MethodTotal) => ({ amount: number(entry.amount), orders: number(entry.orders,true) });
+  return { ...report, summary: { ...report.summary, total: number(report.summary.total), orders: number(report.summary.orders,true), units: number(report.summary.units), cash: method(report.summary.cash), qr: method(report.summary.qr), other: method(report.summary.other) }, filtered: { total: number(report.filtered.total), orders: number(report.filtered.orders,true), units: number(report.filtered.units) }, rows: report.rows.map(row => ({ ...row, quantity: number(row.quantity), unit_price: row.unit_price === null ? null : number(row.unit_price,true), total_sale_value: number(row.total_sale_value) })) };
 }

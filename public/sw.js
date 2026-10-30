@@ -1,6 +1,6 @@
-const CACHE_NAME = "mamita-masita-v2";
+const CACHE_NAME = "mamita-masita-v3";
 // Cache public assets only. Never replay authenticated HTML from a previous session.
-const APP_SHELL = ["/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
+const APP_SHELL = ["/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -21,7 +21,7 @@ self.addEventListener("fetch", (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
-  if (request.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/api/")) {
+  if (request.method !== "GET" || url.origin !== self.location.origin || (url.pathname.startsWith("/api/") || url.pathname === "/manifest.webmanifest")) {
     return;
   }
 

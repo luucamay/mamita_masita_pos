@@ -16,7 +16,7 @@ export function ReportView({ report, filters, error = null }: { report: SalesRep
   const href = (changes: Partial<ReportFilters>) => `/historial?${reportQuery({ ...active, ...changes })}`;
   return <div className="mx-auto max-w-7xl space-y-6 px-5 py-6 sm:px-8">
     <header className="flex flex-wrap justify-between gap-4 sm:items-center">
-      <div><h1 className="text-2xl font-semibold">Historial y reportes</h1><p className="mt-2 text-sm text-[var(--muted)]">Ingresos cobrados, con descuentos aplicados. Incluye las compras de empleados.</p></div>
+      <div><h1 className="text-2xl font-semibold">Historial y reportes</h1><p className="mt-2 text-sm text-[var(--muted)]">Cobros netos, incluidas devoluciones y compras de empleados.</p></div>
       <nav aria-label="Período del reporte" className="flex w-fit rounded-xl border border-[var(--border)] bg-white p-1">{periods.map(period => <a key={period.value} href={href({ period: period.value })} aria-current={active.period === period.value ? "page" : undefined} className={`inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold ${active.period === period.value ? "bg-orange-500 text-white" : "text-[var(--muted)] hover:bg-orange-50"}`}>{period.label}</a>)}</nav>
       <a href="/menu" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-orange-500 px-4 text-sm font-semibold text-white">Tomar pedido</a>
     </header>

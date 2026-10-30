@@ -128,7 +128,8 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
   async function markDelivered(orderId: string) {
     setWorkingId(orderId);
     setError(null);
-    const { error: rpcError } = await createClient().rpc("mark_order_delivered", {
+    const prepaid=displayOrders.find(order=>order.id===orderId)?.payment_methods?.length;
+    const { error: rpcError } = await createClient().rpc(prepaid?"deliver_prepaid_order":"mark_order_delivered", {
       p_order_id: orderId,
     });
 
@@ -234,7 +235,7 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
   }
 
   return (
-    <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid items-start gap-2 md:grid-cols-2 xl:grid-cols-3">
       {error ? (
         <p className="col-span-full rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
       ) : null}
@@ -254,7 +255,7 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
                  showDetails(order);
                }
              }}
-             className={`cursor-pointer rounded-2xl border px-4 py-4 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-orange-500 ${
+             className={`cursor-pointer rounded-xl border px-3 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-orange-500 ${
                closed
                  ? "border-gray-200 bg-gray-100/80"
                  : delivered
@@ -262,7 +263,7 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
                  : "border-orange-200 bg-orange-50/70"
             }`}
           >
-             <div className="flex flex-col gap-4">
+             <div className="flex flex-col gap-2">
                <div>
                  {closed ? (
                    <>
@@ -279,32 +280,32 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
                      </p>
                    </>
                  ) : (
-                   <div className="flex items-center gap-4">
+                   <div className="flex items-center gap-2">
                      <h2 className="flex items-center gap-2 text-lg font-bold">
                        <TableIcon className="h-6 w-6 shrink-0 text-orange-600" />
                        {order.table_number}
                      </h2>
                      <div className="text-sm text-[var(--muted)]">
-                       <p>Pedido #{order.order_number}</p>
-                       <p>Abierto: {formatDate(order.created_at)}</p>
+                       <p>#{order.order_number}</p>
+                       <p>{formatDate(order.created_at)}</p>
                      </div>
                    </div>
                  )}
-                 {!closed?<div className="mt-3 flex flex-wrap items-center gap-2"><span data-testid="order-status" className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold capitalize text-orange-900">{order.status}</span>{order.customer_name?<span className="break-words text-sm text-[var(--muted)]">{order.customer_name}</span>:null}</div>:null}
+                 {!closed?<div className="mt-1 flex flex-wrap items-center gap-1.5"><span data-testid="order-status" className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold capitalize text-orange-900">{order.status}</span>{order.customer_name?<span className="break-words text-sm text-[var(--muted)]">{order.customer_name}</span>:null}</div>:null}
                  {closed ? (
-                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
+                   <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-[var(--muted)]">
                      {order.delivered_at ? <span>Entregado: {formatDate(order.delivered_at)}</span> : null}
                     {order.paid_at ? <span>Pagado: {formatDate(order.paid_at)}</span> : null}
                   </div>
                ) : null}
                </div>
-               <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
+               <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end">
                  <div className="flex flex-wrap items-center gap-2">
                    <PaymentBadge order={order} />
                    {order.purchase_type==="employee"?<EmployeePurchaseBadge/>:null}
                    <DiscountBadge bps={order.discount_bps} />
                  </div>
-                 {!closed && order.purchase_type==="employee" ? <button type="button" onClick={event=>{event.stopPropagation();void showDetails(order);}} className="min-h-11 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white">Cobrar compra</button> : !closed && !delivered ? (
+                 {!closed && order.purchase_type==="employee" ? <button type="button" onClick={event=>{event.stopPropagation();void showDetails(order);}} className="min-h-11 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white">Cobrar compra</button> : !closed && (!delivered || Boolean(order.payment_methods?.length)) ? (
                    <button
                      type="button"
                      disabled={workingId === order.id}
@@ -314,7 +315,7 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
                      }}
                     className="rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60"
                   >
-                    {workingId === order.id ? "Guardando..." : "Entregado"}
+                    {workingId === order.id ? "Guardando..." : order.payment_methods?.length?"Entregar y archivar":"Entregado"}
                    </button>
                   ) : !closed && paymentOrderId === order.id ? (
                    <div className="flex flex-wrap justify-end gap-2">
@@ -350,8 +351,8 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
                    </p>
                </div>
             </div>
-            {order.items?<ul aria-label="Productos del pedido" className="mt-4 space-y-2 border-t border-[var(--border)] pt-3 text-sm">{order.items.filter(item=>item.status!=="voided").map(item=><li key={item.id} className="flex items-start justify-between gap-2"><span className="break-words">{item.quantity} × {item.item_name}</span><span className="shrink-0 text-xs text-[var(--muted)]">{item.status==="delivered"?"Entregado":"Pendiente"}</span></li>)}</ul>:null}
-            {nowMs!==undefined?<div className="mt-4"><OrderTimers order={order} now={nowMs}/></div>:null}
+            {order.items?<ul aria-label="Productos del pedido" className="mt-2 space-y-1 border-t border-[var(--border)] pt-2 text-sm">{order.items.filter(item=>item.status!=="voided").map(item=><li key={item.id} className="flex items-start justify-between gap-2"><span className="break-words">{item.quantity} × {item.item_name}</span><span className="shrink-0 text-xs text-[var(--muted)]">{item.status==="delivered"?"Entregado":"Pendiente"}</span></li>)}</ul>:null}
+            {nowMs!==undefined?<div className="mt-2"><OrderTimers order={order} now={nowMs}/></div>:null}
            </article>
          );
        })}
@@ -380,7 +381,7 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
                   type="button"
                   disabled={editing || detailsLoading || Boolean(detailsError) || detailItems.length === 0}
                   onClick={() => printOrder(selectedOrder, detailItems)}
-                  className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className={`${editing?"hidden ":""}rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-50`}
                 >
                   Imprimir
                 </button>
@@ -395,7 +396,7 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-orange-50 p-4 text-sm">
+            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 rounded-lg bg-orange-50 px-3 py-2 text-xs [&_p]:mt-0">
               <div>
                 <p className="text-[var(--muted)]">Mesa</p>
                 <p className="mt-1 font-semibold">{selectedOrder.table_number}</p>
@@ -440,7 +441,7 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
                     </div>
                   ))}
                 </div>
-                {selectedOrder.discount_bps ? <div className="mt-4 space-y-2 border-t border-[var(--border)] pt-3 text-sm"><div className="flex justify-between"><span>Subtotal</span><span>{formatMoney(selectedOrder.subtotal ?? selectedOrder.total)}</span></div><div className="flex flex-wrap justify-between gap-2 text-orange-800"><span>Descuento original <DiscountBadge bps={selectedOrder.discount_bps} /></span><span>−{formatMoney(selectedOrder.discount_amount ?? 0)}</span></div></div> : null}
+                {selectedOrder.discount_bps ? <div className="mt-2 space-y-1 border-t border-[var(--border)] pt-2 text-sm"><div className="flex justify-between"><span>Subtotal</span><span>{formatMoney(selectedOrder.subtotal ?? selectedOrder.total)}</span></div><div className="flex flex-wrap justify-between gap-2 text-orange-800"><span>Descuento original <DiscountBadge bps={selectedOrder.discount_bps} /></span><span>−{formatMoney(selectedOrder.discount_amount ?? 0)}</span></div></div> : null}
                 <div className="mt-4 flex items-center justify-between border-t border-[var(--border)] pt-4">
                   <span className="font-semibold">Total</span>
                   <span className="text-lg font-semibold">{formatMoney(selectedOrder.total)}</span>
@@ -451,14 +452,14 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
                      <div className="w-full rounded-xl bg-gray-100 px-4 py-3 text-center text-sm font-semibold text-gray-600">
                        Cerrado
                      </div>
-                   ) : selectedOrder.status !== "entregado" && selectedOrder.status !== "pagado" ? (
+                   ) : Boolean(selectedOrder.payment_methods?.length) || selectedOrder.status !== "entregado" && selectedOrder.status !== "pagado" ? (
                     <button
                       type="button"
                       disabled={workingId === selectedOrder.id}
                       onClick={() => markDelivered(selectedOrder.id)}
                       className="w-full rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60"
                     >
-                      {workingId === selectedOrder.id ? "Guardando..." : "Entregado"}
+                      {workingId === selectedOrder.id ? "Guardando..." : selectedOrder.payment_methods?.length?"Entregar y archivar":"Entregado"}
                     </button>
                   ) : selectedOrder.status === "pagado" ? (
                     <div className="w-full rounded-xl bg-green-50 px-4 py-3 text-center text-sm font-semibold text-green-700">

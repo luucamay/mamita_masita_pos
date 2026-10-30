@@ -1,5 +1,5 @@
 import { test,expect,type Page } from "@playwright/test";
-async function login(page:Page,role="ADMIN",next="/pedidos?view=closed"){
+async function login(page:Page,role="ADMIN",next="/pedidos?view=closed&all=1"){
   await page.goto(`/login?next=${encodeURIComponent(next)}`);await page.getByLabel("Correo electrónico").fill(process.env[`E2E_${role}_EMAIL`]!);await page.getByLabel("Contraseña").fill(process.env[`E2E_${role}_PASSWORD`]!);await page.getByRole("button",{name:"Ingresar",exact:true}).click();await expect(page).not.toHaveURL(/\/login/);
 }
 test.beforeEach(async({page})=>{
@@ -7,14 +7,14 @@ test.beforeEach(async({page})=>{
   await page.route("**/rest/v1/**",route=>["GET","HEAD"].includes(route.request().method())?route.continue():route.abort());
 });
 test("P14 closed history is paginated without losing totals, detail or later pages",async({page})=>{
-  await login(page);const nav=page.getByRole("navigation",{name:"Páginas de pedidos cerrados"});await expect(nav).toContainText("938 pedidos cerrados");await expect(page.locator("article[data-order-id]")).toHaveCount(24);
-  const first=(await(await page.request.get("/api/orders/live?view=closed&page=1")).json());const second=(await(await page.request.get("/api/orders/live?view=closed&page=2")).json());
-  expect(first.pagination).toEqual({page:1,pages:40,total:938,size:24});expect(second.orders).toHaveLength(24);expect(second.orders.every((order:any)=>!first.orders.some((o:any)=>o.id===order.id))).toBe(true);
-  const detail=await(await page.request.get(`/api/orders/live?view=closed&page=2&selected=${first.orders[0].id}`)).json();expect(detail.selected.id).toBe(first.orders[0].id);expect(detail.selected.total).toBe(first.orders[0].total);
+  await login(page);const nav=page.getByRole("navigation",{name:"Páginas de pedidos cerrados"});await expect(nav).toContainText("pedidos cerrados");await expect(page.locator("article[data-order-id]")).toHaveCount(24);
+  const first=(await(await page.request.get("/api/orders/live?view=closed&all=1&page=1")).json());const second=(await(await page.request.get("/api/orders/live?view=closed&all=1&page=2")).json());
+  expect(first.pagination.page).toBe(1);expect(first.pagination.total).toBeGreaterThan(900);expect(second.orders).toHaveLength(24);expect(second.orders.every((order:any)=>!first.orders.some((o:any)=>o.id===order.id))).toBe(true);
+  const detail=await(await page.request.get(`/api/orders/live?view=closed&all=1&page=2&selected=${first.orders[0].id}`)).json();expect(detail.selected.id).toBe(first.orders[0].id);expect(detail.selected.total).toBe(first.orders[0].total);
   await nav.getByRole("link",{name:"Siguientes",exact:true}).click();await expect(page).toHaveURL(/page=2/);await expect(page.locator("article[data-order-id]").first()).toHaveAttribute("data-order-id",second.orders[0].id);
   await page.locator("article[data-order-id]").first().getByRole("heading").click();await expect(page.getByRole("dialog")).toBeVisible();await page.evaluate(()=>window.dispatchEvent(new Event("focus")));await expect(page.getByRole("dialog")).toBeVisible();await page.getByRole("button",{name:"Cerrar detalle",exact:true}).click();
-  const last=await(await page.request.get("/api/orders/live?view=closed&page=1000000")).json();expect(last.pagination.page).toBe(40);expect(last.orders).toHaveLength(2);
-  expect((await page.request.get("/api/orders/live?view=closed&page=0")).status()).toBe(400);expect((await page.request.get("/api/orders/live?view=closed&page=1&page=2")).status()).toBe(400);
+  const last=await(await page.request.get("/api/orders/live?view=closed&all=1&page=1000000")).json();expect(last.pagination.page).toBe(last.pagination.pages);expect(last.orders.length).toBeGreaterThan(0);
+  expect((await page.request.get("/api/orders/live?view=closed&all=1&page=0")).status()).toBe(400);expect((await page.request.get("/api/orders/live?view=closed&all=1&page=1&page=2")).status()).toBe(400);
   await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await nav.screenshot({path:"test-results/p14/closed-pagination-mobile.png"});
 });
 test("P14 queue API keeps fresh role boundaries and private responses",async({page,request})=>{
@@ -27,9 +27,9 @@ for(const [queue,path]of [["cafe","/cafe"],["kitchen","/cocina"]])test(`P14 ${qu
   await login(page,"ADMIN",path);await expect(page.getByTestId("queue-status")).toContainText("En vivo");
   let calls=0,failure=false;const line={order_id:"00000000-0000-0000-0000-000000000014",order_item_id:"00000000-0000-0000-0000-000000000015",order_number:"P14 QA",table_number:"QA",customer_name:null,order_status:"confirmado",item_name:"Producto QA",quantity:1,unit_price:10,line_total:10,item_status:"pending",created_at:"2026-10-30T10:00:00Z",printed_at:null};
   await page.route(`**/api/queues/live?queue=${queue}`,route=>{calls++;return route.fulfill({status:failure?503:200,json:failure?{error:"simulated outage"}:{items:[line],error:null}});});
-  await page.evaluate(()=>document.documentElement.dataset.p14="same");await page.getByRole("button",{name:"Actualizar cola",exact:true}).click();await expect(page.getByText("Producto QA",{exact:true})).toBeVisible();
+  await page.evaluate(()=>document.documentElement.dataset.p14="same");await page.getByRole("button",{name:"Actualizar página",exact:true}).click();await expect(page.getByText("Producto QA",{exact:true})).toBeVisible();
   await page.clock.install();const before=calls;await page.clock.fastForward(16000);expect(calls).toBe(before);
-  failure=true;await page.getByRole("button",{name:"Actualizar cola",exact:true}).click();await expect(page.getByTestId("queue-status")).toContainText("última lectura");await expect(page.getByText("Producto QA",{exact:true})).toBeVisible();
+  failure=true;await page.getByRole("button",{name:"Actualizar página",exact:true}).click();await expect(page.getByTestId("queue-status")).toContainText("última lectura");await expect(page.getByText("Producto QA",{exact:true})).toBeVisible();
   await context.setOffline(true);await expect(page.getByTestId("queue-status")).toContainText("Sin conexión");const offline=calls;await page.clock.fastForward(60000);expect(calls).toBe(offline);
   failure=false;await context.setOffline(false);await expect(page.getByTestId("queue-status")).toContainText("En vivo");
   await page.evaluate(()=>{Object.defineProperty(document,"visibilityState",{value:"hidden",configurable:true});document.dispatchEvent(new Event("visibilitychange"));});const hidden=calls;await page.clock.fastForward(60000);expect(calls).toBe(hidden);

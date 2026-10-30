@@ -24,7 +24,7 @@ test("P06 stale promotion asks for review and keeps the cart instead of creating
   let submits=0;
   await page.route("**/rest/v1/**",async route=>{
     const path=new URL(route.request().url()).pathname;
-    if(path.endsWith("/rpc/create_order_with_promotion")){
+    if(path.endsWith("/rpc/place_customer_order")){
       const body=route.request().postDataJSON();expect(body.p_expected_discount_bps).toBe(1500);expect(body.p_items[0].quantity).toBe(2);expect(body.p_items[0].expected_unit_price).toBe(20);submits++;
       await context.addCookies([{name:"p06-qa-rate",value:"2000",url:baseURL!}]);return route.fulfill({status:400,json:{code:"40001",message:"La promoción cambió"}});
     }
@@ -33,9 +33,9 @@ test("P06 stale promotion asks for review and keeps the cart instead of creating
   });
   await login(page,"STAFF");await page.goto("/qa-preview/promotion-menu");
   await page.getByPlaceholder("Buscar ítem...").fill("Cappuccino");await page.getByRole("button",{name:"Agregar Cappuccino",exact:true}).click();await page.getByRole("button",{name:"Agregar otro Cappuccino",exact:true}).click();
-  const panel=page.locator("aside").filter({has:page.getByRole("button",{name:"Confirmar",exact:true})});
-  await expect(panel).toContainText(/34[,.]00/);await page.getByLabel("Nro. de mesa *",{exact:true}).fill("QA");
-  await page.getByRole("button",{name:"Confirmar",exact:true}).click();
+  const panel=page.locator("aside").filter({has:page.getByRole("button",{name:"Registrar pedido",exact:true})});
+  await expect(panel).toContainText(/34[,.]00/);await page.getByRole("button",{name:"Otra",exact:true}).click();await page.getByLabel("Nro. de mesa",{exact:true}).fill("QA");
+  await page.getByRole("button",{name:"Registrar pedido",exact:true}).click();
   await expect(page.getByText("El menú o la promoción cambió. Revisa el total actualizado y vuelve a confirmar.",{exact:true})).toBeVisible();await expect(panel).toContainText(/32[,.]00/);expect(submits).toBe(1);
   const noPriceOverlap=await page.getByRole("article").filter({has:page.getByRole("heading",{name:"Cappuccino",exact:true})}).evaluate(card=>{const price=card.querySelector("p")!.getBoundingClientRect();const controls=card.querySelector('button[aria-label="Disminuir Cappuccino"]')!.parentElement!.getBoundingClientRect();return price.bottom<=controls.top||controls.bottom<=price.top||price.right<=controls.left||controls.right<=price.left;});expect(noPriceOverlap).toBe(true);
   await page.screenshot({path:"test-results/p06/menu-discount-desktop.png",fullPage:true});

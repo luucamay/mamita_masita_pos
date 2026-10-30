@@ -51,6 +51,7 @@ export type DraftOrderLine = {
 };
 
 export type OpenOrder = {
+  payment_methods?: ("cash"|"qr"|"card")[] | null;
   items?: OrderLine[];
   purchase_type?: PurchaseType;
   buyer_employee_id?: string | null;

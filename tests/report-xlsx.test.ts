@@ -15,6 +15,11 @@ async function open(input: SalesReport) {
   const bytes = await createSalesReportXlsx(input); assert.equal(Buffer.from(bytes).subarray(0, 2).toString(), "PK");
   const book = new ExcelJS.Workbook(); await book.xlsx.load(bytes.buffer); return book;
 }
+
+test("Refund Excel keeps negative units and net cash values as numeric cells",async()=>{
+  const value=report();value.rows=[{...value.rows[0],quantity:-1,total_sale_value:-10}];value.filtered={total:-10,orders:1,units:-1};value.summary={total:-10,orders:1,units:-1,cash:{amount:-10,orders:1},qr:{amount:0,orders:0},other:{amount:0,orders:0}};
+  const book=await open(value),sheet=book.getWorksheet("Ventas")!;assert.equal(sheet.getCell("C10").value,-10);assert.equal(sheet.getCell("B14").value,-1);assert.equal(sheet.getCell("C14").value,-10);
+});
 test("P12 creates real XLSX with one styled sheet, numeric amounts, totals and dates", async () => {
   const book = await open(report()), sheet = book.getWorksheet("Ventas")!;
   assert.equal(book.worksheets.length, 1); assert.equal(sheet.getCell("C10").value, 63); assert.equal(sheet.getCell("B5").value instanceof Date, true);

@@ -11,6 +11,6 @@ test("P13 live snapshot API validates view and permissions without caching priva
 });
 test("P13 failed refresh retains the last cards and recovers on a successful read",async({page})=>{
  await login(page);await expect(page.getByTestId("live-status")).toContainText("En vivo");const count=await page.locator("article[data-order-id]").count();expect(count).toBeGreaterThan(0);
- await page.route("**/api/orders/live?**",route=>route.fulfill({status:503,json:{error:"simulated outage"}}));await page.getByRole("button",{name:"Actualizar pedidos",exact:true}).click();await expect(page.getByRole("alert").filter({hasText:"última lectura"})).toBeVisible();await expect(page.locator("article[data-order-id]")).toHaveCount(count);
- await page.unroute("**/api/orders/live?**");await page.getByRole("button",{name:"Actualizar pedidos",exact:true}).click();await expect(page.getByRole("alert").filter({hasText:"última lectura"})).toHaveCount(0);await expect(page.getByTestId("live-status")).toContainText("En vivo");
+ await page.route("**/api/orders/live?**",route=>route.fulfill({status:503,json:{error:"simulated outage"}}));await page.getByRole("button",{name:"Actualizar página",exact:true}).click();await expect(page.getByRole("alert").filter({hasText:"última lectura"})).toBeVisible();await expect(page.locator("article[data-order-id]")).toHaveCount(count);
+ await page.unroute("**/api/orders/live?**");await page.getByRole("button",{name:"Actualizar página",exact:true}).click();await expect(page.getByRole("alert").filter({hasText:"última lectura"})).toHaveCount(0);await expect(page.getByTestId("live-status")).toContainText("En vivo");
 });

@@ -13,7 +13,7 @@ async function login(page: Page, role = "STAFF", destination = "/pedidos") {
 test("P03 payment badges match closed cash/QR orders and open unpaid orders", async ({ page }) => {
   await login(page);
   await expect(page.locator('[data-payment-kind="unpaid"]').first()).toBeVisible();
-  await page.getByRole("link", { name: "Cerrados", exact: true }).click();
+  await page.goto("/pedidos?view=closed&all=1");
   await expect(page.locator('[data-payment-kind="cash"]').first()).toContainText("Efectivo");
   await expect(page.locator('[data-payment-kind="qr"]').first()).toContainText("QR");
   const order = page.locator("article").filter({ has: page.locator('[data-payment-kind="qr"]') }).first();

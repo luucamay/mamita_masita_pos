@@ -37,10 +37,12 @@ export function useLiveQueue<T>({queue,initialItems,onInsert}:{queue:QueueType;i
       .on("postgres_changes",{event:"*",schema:"public",table:"orders"},()=>refresh.request())
       .subscribe(state=>{if(!alive)return;connected=state==="SUBSCRIBED";setStatus(connected?"En vivo":navigator.onLine?"Reconectando. Los datos pueden estar desactualizados.":"Sin conexión. Los datos pueden estar desactualizados.");if(connected)refresh.request(true);});
     function resume(){if(!alive)return;if(!navigator.onLine){setStatus("Sin conexión. Los datos pueden estar desactualizados.");return;}refresh.request(true);}
+    function manual(event:Event){event.preventDefault();refresh.request(true);}
+    window.addEventListener("mamita:refresh",manual);
     const timer=setInterval(()=>refresh.request(true),30000);
     window.addEventListener("focus",resume);window.addEventListener("online",resume);window.addEventListener("offline",resume);document.addEventListener("visibilitychange",resume);
     if(!navigator.onLine)setStatus("Sin conexión. Los datos pueden estar desactualizados.");
-    return()=>{alive=false;refreshRef.current=null;refresh.dispose();clearInterval(timer);window.removeEventListener("focus",resume);window.removeEventListener("online",resume);window.removeEventListener("offline",resume);document.removeEventListener("visibilitychange",resume);void client.removeChannel(channel);};
+    return()=>{window.removeEventListener("mamita:refresh",manual);alive=false;refreshRef.current=null;refresh.dispose();clearInterval(timer);window.removeEventListener("focus",resume);window.removeEventListener("online",resume);window.removeEventListener("offline",resume);document.removeEventListener("visibilitychange",resume);void client.removeChannel(channel);};
   },[queue,router]);
   return{items,setItems,status,refresh:()=>refreshRef.current?.(true)};
 }
