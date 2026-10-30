@@ -1,9 +1,15 @@
 import { normalizeOrderSnapshot, type OrderLine } from "./order-edit.ts";
 import type { OpenOrder } from "./types";
 export type BoardOrder = OpenOrder & { items: OrderLine[]; revision: number };
-export type OrderBoard = { orders: BoardOrder[]; selected: BoardOrder | null; serverTime: string };
+export type BoardPagination = { page: number; size: number; total: number; pages: number };
+export type OrderBoard = { orders: BoardOrder[]; selected: BoardOrder | null; serverTime: string; pagination: BoardPagination | null };
+export function parseBoardPage(value: unknown, closed: boolean): number {
+  if (value === undefined || value === null) return 1;
+  if (typeof value !== "string" || !/^[1-9]\d{0,6}$/.test(value) || Number(value)>1000000 || !closed && value!=="1") throw Error("Página inválida");
+  return Number(value);
+}
 export function normalizeOrderBoard(value: unknown): OrderBoard {
-  const raw = value as { orders: Record<string, unknown>[]; selected: Record<string, unknown> | null; server_time: string };
+  const raw = value as { orders: Record<string, unknown>[]; selected: Record<string, unknown> | null; server_time: string; pagination?: BoardPagination | null };
   if (!raw || !Array.isArray(raw.orders) || !Number.isFinite(Date.parse(raw.server_time))) throw new Error("Respuesta de pedidos inválida");
   const normalize = (order: Record<string, unknown>): BoardOrder => {
     if (typeof order.id !== "string" || !Array.isArray(order.items)) throw new Error("Pedido inválido");
@@ -12,7 +18,9 @@ export function normalizeOrderBoard(value: unknown): OrderBoard {
   };
   const orders = raw.orders.map(normalize);
   if (new Set(orders.map(order => order.id)).size !== orders.length) throw new Error("Pedidos duplicados");
-  return { orders, selected: raw.selected ? normalize(raw.selected) : null, serverTime: raw.server_time };
+  const pagination=raw.pagination ?? null;
+  if(pagination && (!Object.values(pagination).every(Number.isSafeInteger) || pagination.page<1 || pagination.size!==24 || pagination.total<0 || pagination.pages!==Math.max(1,Math.ceil(pagination.total/24)) || pagination.page>pagination.pages || orders.length>24)) throw Error("Paginación inválida");
+  return { orders, selected: raw.selected ? normalize(raw.selected) : null, serverTime: raw.server_time, pagination };
 }
 export function elapsedLabel(milliseconds: number | null): string {
   if (milliseconds === null || !Number.isFinite(milliseconds)) return "Sin registro";

@@ -34,7 +34,10 @@
     "test:p12": "node --experimental-strip-types --test tests/report-xlsx.test.ts",
     "test:p12:ui": "playwright test --config playwright.excel.config.ts",
     "test:p13": "node --experimental-strip-types --test tests/order-board.test.ts",
-    "test:p13:db": "node scripts/test-p01-database.mjs p13"
+    "test:p13:db": "node scripts/test-p01-database.mjs p13",
+    "test:p14": "node --experimental-strip-types --test tests/performance.test.ts",
+    "test:p14:db": "node scripts/test-p01-database.mjs p14",
+    "test:p14:ui": "playwright test --config playwright.p14.config.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

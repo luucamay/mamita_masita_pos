@@ -38,7 +38,9 @@ export default function LoginPage() {
     }
     const next = new URL(window.location.href).searchParams.get("next");
     router.replace(safeLoginDestination(next, profile));
-    router.refresh();
+    // replace already fetches the protected route with the new session cookie.
+    // Refreshing the old /login tree concurrently can redirect to the role's
+    // default home and cancel the requested destination or its first transition.
   }
 
   return (

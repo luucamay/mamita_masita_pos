@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useLiveQueue } from "@/lib/use-live-queue";
+import { QueueStatus } from "@/components/queue-status";
 import type { CafeQueueItem } from "@/lib/types";
 import { formatOrderTime as formatTime } from "@/lib/date-time";
 
@@ -21,17 +22,13 @@ function playNotification(context: AudioContext) {
   oscillator.stop(context.currentTime + 0.45);
 }
 
-export function CafeQueue({ initialItems }: { initialItems: CafeQueueItem[] }) {
-  const router = useRouter();
-  const [items, setItems] = useState(initialItems);
+export function CafeQueue({ initialItems, role }: { initialItems: CafeQueueItem[]; role: string }) {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [soundReady, setSoundReady] = useState(false);
-  const [role, setRole] = useState<string | null>(null);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | null>(null);
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const soundEnabledRef = useRef(soundEnabled);
-  const roleRef = useRef(role);
   const audioContextRef = useRef<AudioContext | null>(null);
   const notifiedOrderIdsRef = useRef(new Set<string>());
 
@@ -40,79 +37,18 @@ export function CafeQueue({ initialItems }: { initialItems: CafeQueueItem[] }) {
   }, [soundEnabled]);
 
   useEffect(() => {
-    roleRef.current = role;
-  }, [role]);
-
-  useEffect(() => {
-    let mounted = true;
-    const supabase = createClient();
-
-    async function loadRole() {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
-      const { data } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", userData.user.id)
-        .maybeSingle();
-      if (mounted) setRole(data?.role ?? null);
-    }
-
-    if (typeof window !== "undefined" && "Notification" in window) {
-      setNotificationPermission(Notification.permission);
-    }
-    void loadRole();
-
-    return () => {
-      mounted = false;
-    };
+    if ("Notification" in window) setNotificationPermission(Notification.permission);
   }, []);
 
-  useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel("cafe-queue")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "order_items" },
-        (payload) => {
-          if (payload.new.queue_type !== "cafe" || payload.new.status !== "pending") return;
-          if (soundEnabledRef.current && audioContextRef.current?.state === "running") {
-            playNotification(audioContextRef.current);
-          }
-          if (
-            roleRef.current === "barista" &&
-            notificationPermission === "granted" &&
-            !notifiedOrderIdsRef.current.has(payload.new.order_id)
-          ) {
-            notifiedOrderIdsRef.current.add(payload.new.order_id);
-            new Notification("Nuevo pedido de café", {
-              body: "Hay un pedido nuevo pendiente en la cola.",
-              tag: `cafe-order-${payload.new.order_id}`,
-            });
-          }
-          router.refresh();
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "order_items" },
-        (payload) => {
-          if (payload.new.queue_type === "cafe") router.refresh();
-        },
-      )
-      .subscribe();
-    const refreshInterval = window.setInterval(() => router.refresh(), 5000);
-
-    return () => {
-      window.clearInterval(refreshInterval);
-      void supabase.removeChannel(channel);
-    };
-  }, [notificationPermission, router]);
-
-  useEffect(() => {
-    setItems(initialItems);
-  }, [initialItems]);
+  const { items, setItems, status, refresh } = useLiveQueue<CafeQueueItem>({
+    queue: "cafe", initialItems, onInsert: row => {
+      if (soundEnabledRef.current && audioContextRef.current?.state === "running") playNotification(audioContextRef.current);
+      if (role === "barista" && notificationPermission === "granted" && !notifiedOrderIdsRef.current.has(row.order_id)) {
+        notifiedOrderIdsRef.current.add(row.order_id);
+        new Notification("Nuevo pedido de café", { body: "Hay un pedido nuevo pendiente en la cola.", tag: `cafe-order-${row.order_id}` });
+      }
+    },
+  });
 
   async function markDelivered(itemId: string) {
     setWorkingId(itemId);
@@ -123,7 +59,7 @@ export function CafeQueue({ initialItems }: { initialItems: CafeQueueItem[] }) {
     if (rpcError) setError(rpcError.message);
     else {
       setItems((current) => current.filter((item) => item.order_item_id !== itemId));
-      router.refresh();
+      refresh();
     }
     setWorkingId(null);
   }
@@ -175,6 +111,7 @@ export function CafeQueue({ initialItems }: { initialItems: CafeQueueItem[] }) {
 
   return (
     <div>
+      <QueueStatus status={status} onRefresh={refresh}/>
       {!soundReady ? (
         <div className="mb-4 flex items-center justify-between gap-4 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
           <p className="text-sm text-orange-900">

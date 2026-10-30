@@ -1,5 +1,7 @@
 # Supabase Backend
 
+P14 paginated order reading (`20261030110916`) was applied on October 30. Do not reapply. Adds security-invoker `get_orders_board_page`: closed orders in pages of 24; active orders remain complete. The P13 RPC, RLS, publication and all business data remain unchanged. See [P14 measurements and verification](../docs/desarrollo/P14_RENDIMIENTO.md). No sales were created by P14 tests; full PostgreSQL/Auth recovery remains unverified.
+
 P13 live order board (`20261030102045`) was applied on October 30. Do not reapply. Adds `orders` to Realtime without replacing item publication/RLS and an active admin/staff-only security-invoker snapshot RPC. See [implementation, scoped real tests and review guide](../docs/desarrollo/P13_PEDIDOS_TIEMPO_REAL.md). The recorded QA rows were removed and all ten public table fingerprints match the baseline; 939 orders/938 payments remain. Full PostgreSQL/Auth recovery remains unverified.
 
 P09 paid-date reporting (`20261030041017`) was applied on October 30 (Bolivia date). Do not reapply it. The new admin-only invoker RPC returns one aggregated JSON snapshot by Bolivia day/week/month, payment and purchase type; an index supports payment date ranges. Existing report views and sales rows are preserved. P10 uses the same snapshot without another migration. See [P09](../docs/desarrollo/P09_PERIODOS_REPORTES.md) and [P10](../docs/desarrollo/P10_SUMATORIAS_CAJA.md). `pnpm test:p10:db` runs 40 synthetic SQL groups locally, without a production connection.

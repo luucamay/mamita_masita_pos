@@ -1,8 +1,10 @@
+import { requireRoles } from "@/lib/auth";
 import { CafeQueue } from "@/components/cafe/cafe-queue";
 import { getCafeQueue } from "@/lib/cafe";
 
 export default async function CafePage() {
-  const { items, error } = await getCafeQueue();
+  const access=await requireRoles(["admin","staff","barista"]);
+  const { items, error } = await getCafeQueue(access);
 
   return (
     <div className="px-6 py-6 lg:px-8">
@@ -16,7 +18,7 @@ export default async function CafePage() {
           No se pudo cargar la cola: {error}
         </div>
       ) : (
-        <CafeQueue initialItems={items} />
+        <CafeQueue initialItems={items} role={access.profile.role} />
       )}
     </div>
   );

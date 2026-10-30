@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useLiveQueue } from "@/lib/use-live-queue";
+import { QueueStatus } from "@/components/queue-status";
 import type { KitchenQueueItem } from "@/lib/types";
 import { formatOrderTime as formatTime } from "@/lib/date-time";
 
@@ -28,8 +29,6 @@ function playNotification() {
 }
 
 export function KitchenQueue({ initialItems }: { initialItems: KitchenQueueItem[] }) {
-  const router = useRouter();
-  const [items, setItems] = useState(initialItems);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,24 +38,9 @@ export function KitchenQueue({ initialItems }: { initialItems: KitchenQueueItem[
     soundEnabledRef.current = soundEnabled;
   }, [soundEnabled]);
 
-  useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel("kitchen-queue")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "order_items" }, (payload) => {
-        if (payload.new.queue_type !== "kitchen" || payload.new.status !== "pending") return;
-        if (soundEnabledRef.current) playNotification();
-        router.refresh();
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "order_items" }, (payload) => {
-        if (payload.new.queue_type === "kitchen") router.refresh();
-      })
-      .subscribe();
-
-    return () => void supabase.removeChannel(channel);
-  }, [router]);
-
-  useEffect(() => setItems(initialItems), [initialItems]);
+  const { items, setItems, status, refresh } = useLiveQueue<KitchenQueueItem>({
+    queue: "kitchen", initialItems, onInsert: () => { if (soundEnabledRef.current) playNotification(); },
+  });
 
   async function markReady(itemId: string) {
     setWorkingId(itemId);
@@ -67,7 +51,7 @@ export function KitchenQueue({ initialItems }: { initialItems: KitchenQueueItem[
     if (rpcError) setError(rpcError.message);
     else {
       setItems((current) => current.filter((item) => item.order_item_id !== itemId));
-      router.refresh();
+      refresh();
     }
     setWorkingId(null);
   }
@@ -81,7 +65,7 @@ export function KitchenQueue({ initialItems }: { initialItems: KitchenQueueItem[
 
   return (
     <div>
-      
+      <QueueStatus status={status} onRefresh={refresh}/>
 
       {error ? <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
       {grouped.size === 0 ? (
