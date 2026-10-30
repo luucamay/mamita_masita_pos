@@ -24,7 +24,9 @@
     "test:p07:db": "node scripts/test-p01-database.mjs p07",
     "test:p07:ui": "playwright test --config playwright.p07.config.ts",
     "test:p08": "playwright test --config playwright.p08.config.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:p09": "node --experimental-strip-types --test tests/reports.test.ts",
+    "test:p09:db": "node scripts/test-p01-database.mjs p09"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

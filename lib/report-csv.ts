@@ -27,7 +27,7 @@ export function createSalesReportCsv(rows: SalesReportRow[]) {
       row.date,
       row.product_or_service,
       row.quantity,
-      row.unit_price,
+      row.unit_price ?? "Varios",
       row.total_sale_value,
       row.payment_method ? paymentLabels[row.payment_method] : "Sin registro",
       row.purchase_type === "employee" ? "Compra de empleado" : "Cliente",

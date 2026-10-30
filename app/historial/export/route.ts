@@ -1,31 +1,21 @@
 import { NextResponse } from "next/server";
-import { createSalesReportCsv, reportCsvFilename } from "@/lib/report-csv";
-import { getSalesReport, type ReportPeriod } from "@/lib/reports";
+import { createSalesReportCsv } from "@/lib/report-csv";
+import { getSalesReport } from "@/lib/reports";
 import { getActiveAccess } from "@/lib/auth";
-
-function isReportPeriod(value: string | null): value is ReportPeriod {
-  return value === "daily" || value === "weekly" || value === "monthly";
-}
-
+import { parseReportFilters } from "@/lib/report-filters";
 export async function GET(request: Request) {
   const access = await getActiveAccess();
   if (!access || access.profile.role !== "admin") return NextResponse.json({ error: "Acceso no autorizado" }, { status: access ? 403 : 401 });
-  const period = new URL(request.url).searchParams.get("period");
-
-  if (!isReportPeriod(period)) {
-    return NextResponse.json({ error: "Periodo de reporte inválido" }, { status: 400 });
-  }
-
-  const { rows, error } = await getSalesReport(period);
-  if (error) {
-    return NextResponse.json({ error }, { status: 500 });
-  }
-
-  return new NextResponse(createSalesReportCsv(rows), {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${reportCsvFilename(period)}"`,
-      "Cache-Control": "no-store",
-    },
-  });
+  const params = new URL(request.url).searchParams;
+  let filters;
+  try {
+    if (!params.has("period") || [...params.keys()].some(key => params.getAll(key).length !== 1)) throw new Error();
+    filters = parseReportFilters(Object.fromEntries(params));
+  } catch { return NextResponse.json({ error: "Filtros de reporte inválidos" }, { status: 400 }); }
+  const { report, error } = await getSalesReport(filters);
+  if (!report || error) return NextResponse.json({ error: error ?? "Reporte no disponible" }, { status: 500 });
+  const filename = ["reporte-ventas", filters.period, report.range.start_date, filters.payment, filters.purchase].join("-") + ".csv";
+  return new NextResponse(createSalesReportCsv(report.rows), { headers: {
+    "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="' + filename + '"', "Cache-Control": "private, no-store",
+  }});
 }
