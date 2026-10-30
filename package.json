@@ -1,13 +1,18 @@
 {
   "name": "mamita-masita-pos",
   "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": { "node": "22.x" },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "build:qa": "node scripts/build-qa.mjs",
+    "build:release": "node scripts/build-release.mjs",
     "start": "next start",
     "lint": "next lint",
     "check:env": "node scripts/check-environment.mjs",
+    "check:release": "node scripts/check-release.mjs",
+    "check:artifacts": "node scripts/check-public-artifacts.mjs",
     "test:preparacion": "node --test scripts/environment.test.mjs",
     "test:p01": "node --experimental-strip-types --test tests/permissions.test.ts tests/money.test.ts",
     "test:p01:db": "node scripts/test-p01-database.mjs",
@@ -42,20 +47,31 @@
     "test:compact:db": "node scripts/test-p01-database.mjs compact",
     "test:compact:ui": "playwright test --config playwright.compact.config.ts",
     "test:cashbox:db": "node scripts/test-p01-database.mjs cashbox",
+    "test:p15": "node --experimental-strip-types --test tests/*.test.ts",
+    "test:p15:ui": "playwright test --config playwright.regression.config.ts",
+    "test:p15:release": "playwright test --config playwright.release.config.ts",
     "test:cashbox:ui": "playwright test --config playwright.regression.config.ts shift-workflow.spec.ts",
     "test:admin:db": "node scripts/test-p01-database.mjs admin",
     "test:admin:ui": "playwright test --config playwright.regression.config.ts admin-interface.spec.ts menu-search.spec.ts excel-export.spec.ts reports.spec.ts"
+  },
+  "pnpm": {
+    "overrides": {
+      "next>postcss": "8.5.26",
+      "next>sharp": "0.35.5",
+      "exceljs>uuid": "11.1.1",
+      "source-map-js@<1.2.2": "1.2.2"
+    }
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.2",
     "exceljs": "4.4.0",
-    "next": "^15.5.23",
+    "next": "^15.5.28",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@playwright/test": "1.54.2",
+    "@playwright/test": "1.55.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",

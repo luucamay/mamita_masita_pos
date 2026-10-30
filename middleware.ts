@@ -3,6 +3,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { homeForRole, isActiveProfile } from "@/lib/permissions";
 
 export async function middleware(request: NextRequest) {
+  // A streamed notFound() can still carry HTTP 200. Reject QA paths before SSR.
+  if ((request.nextUrl.pathname === "/qa-preview" || request.nextUrl.pathname.startsWith("/qa-preview/")) && process.env.MAMITA_QA_BUILD !== "true") {
+    return new NextResponse(null, { status: 404, headers: { "Cache-Control": "no-store" } });
+  }
   let response = NextResponse.next({ request });
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
