@@ -28,7 +28,9 @@
     "test:p09": "node --experimental-strip-types --test tests/reports.test.ts",
     "test:p09:db": "node scripts/test-p01-database.mjs p09",
     "test:p10:db": "node scripts/test-p01-database.mjs p10",
-    "test:reports:ui": "playwright test --config playwright.reports.config.ts"
+    "test:reports:ui": "playwright test --config playwright.reports.config.ts",
+    "test:p11": "node --experimental-strip-types --test tests/report-products.test.ts",
+    "test:p11:ui": "playwright test --config playwright.dashboard.config.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

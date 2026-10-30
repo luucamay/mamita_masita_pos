@@ -130,12 +130,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <nav className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto">
           {navItems
+            .map(item => item.href === "/" && role === "admin" ? { ...item, href: "/menu" } : item)
             .filter((item) => canAccessPath({ role, active: true }, item.href))
             .map((item) => {
               const active =
                 item.href === "/"
                   ? pathname === "/"
-                  : pathname.startsWith(item.href);
+                  : pathname === item.href || pathname.startsWith(`${item.href}/`);
               const Icon = item.icon;
 
               return (

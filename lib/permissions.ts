@@ -8,7 +8,7 @@ export function isActiveProfile(value: unknown): value is AccessProfile {
 }
 
 export function homeForRole(role: UserRole): string {
-  return role === "cook" ? "/cocina" : role === "barista" ? "/cafe" : "/";
+  return role === "admin" ? "/historial" : role === "cook" ? "/cocina" : role === "barista" ? "/cafe" : "/";
 }
 
 function isWithin(path: string, root: string): boolean {
@@ -17,6 +17,7 @@ function isWithin(path: string, root: string): boolean {
 
 export function canAccessPath(profile: unknown, pathname: string): boolean {
   if (!isActiveProfile(profile)) return false;
+  if(isWithin(pathname,"/menu"))return profile.role==="admin"||profile.role==="staff";
   if(isWithin(pathname,"/perfil"))return true;
   if(isWithin(pathname,"/compras-empleados"))return profile.role==="admin"||profile.role==="staff";
   if (isWithin(pathname, "/historial") || isWithin(pathname, "/menu-admin") || isWithin(pathname, "/empleados") || isWithin(pathname, "/promociones")) return profile.role === "admin";
