@@ -1,6 +1,7 @@
+import {isReadOnlyTestRequest} from "./safe-requests";
 import { test, expect, type Page } from "@playwright/test";
 async function login(page: Page, role = "ADMIN") {
-  await page.route("**/rest/v1/**", async route => { if (!["GET", "HEAD"].includes(route.request().method())) { await route.abort(); throw new Error("Unexpected real mutation in dashboard tests"); } await route.continue(); });
+  await page.route("**/rest/v1/**", async route => { if (!isReadOnlyTestRequest(route.request())) { await route.abort(); throw new Error("Unexpected real mutation in dashboard tests"); } await route.continue(); });
   await page.goto("/login"); await page.getByLabel("Correo electrónico").fill(process.env[`E2E_${role}_EMAIL`]!); await page.getByLabel("Contraseña").fill(process.env[`E2E_${role}_PASSWORD`]!); await page.getByRole("button", { name: "Ingresar", exact: true }).click();
 }
 test("P11 administrator starts on today's dashboard and can take an order", async ({ page }) => {

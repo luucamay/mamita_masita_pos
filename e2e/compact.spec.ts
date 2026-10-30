@@ -1,3 +1,4 @@
+import {isReadOnlyTestRequest} from "./safe-requests";
 import { test,expect,type Page } from "@playwright/test";
 import { qaOrderId,qaOrderSnapshot,qaOrderCatalog } from "../lib/qa-order-fixture";
 async function login(page:Page,next="/"){
@@ -35,7 +36,7 @@ test("Prepaid editor requires acknowledgement and tender for collections/refunds
     if(path.endsWith("/rpc/edit_prepaid_order")){
       const body=route.request().postDataJSON();adjustments.push(body);const change=body.p_changes[0];if(change.action==="add"){const p=qaOrderCatalog[2];snapshot.items.push({id:"00000000-0000-4000-8000-000000002003",order_id:qaOrderId,menu_item_id:p.id,item_name:p.name,category_name:"Café",quantity:1,unit_price:20,line_total:20,net_total:20,status:"pending"});snapshot.order.total=79;}else{snapshot.items.find(i=>i.id===change.order_item_id)!.status="voided";snapshot.order.total=30;}snapshot.order.revision++;snapshot.order.payment_methods=["cash","qr"];return route.fulfill({json:snapshot});
     }
-    if(!["GET","HEAD"].includes(route.request().method()))return route.abort();return route.continue();
+    if(!isReadOnlyTestRequest(route.request()))return route.abort();return route.continue();
   });
   await login(page);await page.goto("/qa-preview/orders?prepaid=1");await page.locator("article").getByRole("heading").click();await page.getByRole("button",{name:"Editar pedido",exact:true}).click();await page.getByRole("button",{name:"Agregar Cappuccino QA",exact:true}).click();const save=page.getByRole("button",{name:"Guardar cambios",exact:true});await expect(save).toBeDisabled();await page.getByRole("group",{name:"Medio del ajuste",exact:true}).getByRole("button",{name:"QR",exact:true}).click();await page.getByRole("checkbox",{name:"Confirmo que recibí la diferencia"}).check();await save.click();await expect(page.getByRole("region",{name:"Editar pedido",exact:true})).toHaveCount(0);expect(adjustments[0].p_expected_delta).toBe(20);expect(adjustments[0].p_method).toBe("qr");
   await page.getByRole("button",{name:"Editar pedido",exact:true}).click();await page.getByRole("button",{name:"Quitar Focaccia QA",exact:true}).click();await expect(save).toBeDisabled();await page.getByRole("group",{name:"Medio del ajuste",exact:true}).getByRole("button",{name:"Efectivo",exact:true}).click();await page.getByRole("checkbox",{name:"Confirmo que devolví la diferencia"}).check();await page.setViewportSize({width:390,height:844});await page.screenshot({animations:"disabled",path:"test-results/compact/refund-mobile.png"});await save.click();await expect(page.getByRole("region",{name:"Editar pedido",exact:true})).toHaveCount(0);expect(adjustments[1].p_expected_delta).toBe(-49);

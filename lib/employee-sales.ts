@@ -4,8 +4,8 @@ export type EmployeeSales = {
   summary: { orders: number; total: number; collected: number; pending: number };
   orders: { id: string; order_number: string; table_number: string; customer_name: string | null; created_at: string; status: string; paid_at: string | null; total: number; collected: number; cashiers: { id: string; name: string }[]; methods: ("cash" | "qr" | "card")[]; items: { name: string; quantity: number }[] }[];
 };
-export function salesRange(today: string, preset: "day" | "week") {
-  const range = reportRange(preset === "day" ? "daily" : "weekly", today);
+export function salesRange(today: string, preset: "day" | "week" | "month") {
+  const range = reportRange(preset === "day" ? "daily" : preset === "week" ? "weekly" : "monthly", today);
   const last = new Date(`${range.end}T00:00:00Z`); last.setUTCDate(last.getUTCDate() - 1);
   return { start: range.start, end: last.toISOString().slice(0, 10) };
 }

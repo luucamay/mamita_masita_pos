@@ -1,7 +1,8 @@
+import {isReadOnlyTestRequest} from "./safe-requests";
 import { test, expect, type Page } from "@playwright/test";
 async function openAdmin(page: Page) {
  await page.route("**/rest/v1/**", async route => {
-  if (!["GET", "HEAD"].includes(route.request().method())) { await route.abort(); throw new Error("Unexpected catalog mutation"); }
+  if (!isReadOnlyTestRequest(route.request())) { await route.abort(); throw new Error("Unexpected catalog mutation"); }
   await route.continue();
  });
  await page.goto("/login?next=/menu-admin");

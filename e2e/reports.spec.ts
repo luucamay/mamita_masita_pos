@@ -1,10 +1,11 @@
+import {isReadOnlyTestRequest} from "./safe-requests";
 import ExcelJS from "exceljs";
 import { test, expect, type Page } from "@playwright/test";
 import reference from "./report-reference.json";
 const money = (n: number) => new Intl.NumberFormat("es-BO", { style: "currency", currency: "BOB" }).format(n);
 async function login(page: Page) {
   await page.route("**/rest/v1/**", async route => {
-    if (!["GET", "HEAD"].includes(route.request().method()) && !new URL(route.request().url()).pathname.endsWith("/rpc/get_sales_report")) { await route.abort(); throw new Error("Unexpected real mutation in report tests"); }
+    if (!isReadOnlyTestRequest(route.request()) && !new URL(route.request().url()).pathname.endsWith("/rpc/get_sales_report")) { await route.abort(); throw new Error("Unexpected real mutation in report tests"); }
     await route.continue();
   });
   await page.goto("/login?next=%2Fhistorial%3Fdate%3D2026-10-17");

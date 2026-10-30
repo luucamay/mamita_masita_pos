@@ -1,3 +1,4 @@
+import {isReadOnlyTestRequest} from "./safe-requests";
 import { expect,test,type Page } from "@playwright/test";
 async function login(page:Page,role="ADMIN"){
   await page.goto("/login"); await page.getByLabel("Correo electrónico").fill(process.env[`E2E_${role}_EMAIL`]!);await page.getByLabel("Contraseña").fill(process.env[`E2E_${role}_PASSWORD`]!);await page.getByRole("button",{name:"Ingresar",exact:true}).click();await expect(page).not.toHaveURL(/\/login/,{timeout:15000});
@@ -9,7 +10,7 @@ test("P06 schedules, edits and disables a daily promotion without real writes",a
       const body=route.request().postDataJSON(); requests.push(body);
       saved={promotion_date:body.p_date,discount_bps:body.p_discount_bps,active:body.p_active,revision:(saved?.revision??0)+1,updated_at:"2026-10-29T20:00:00Z"};return route.fulfill({json:saved});
     }
-    if(!["GET","HEAD"].includes(route.request().method())){await route.abort();throw new Error("Unexpected real promotion mutation");}await route.continue();
+    if(!isReadOnlyTestRequest(route.request())){await route.abort();throw new Error("Unexpected real promotion mutation");}await route.continue();
   });
   await login(page);await page.goto("/qa-preview/promotions");
   await page.getByLabel("Descuento (%)",{exact:true}).fill("15");await page.getByRole("button",{name:"Programar promoción",exact:true}).click();
@@ -29,7 +30,7 @@ test("P06 stale promotion asks for review and keeps the cart instead of creating
       await context.addCookies([{name:"p06-qa-rate",value:"2000",url:baseURL!}]);return route.fulfill({status:400,json:{code:"40001",message:"La promoción cambió"}});
     }
     if(path.endsWith("/rpc/get_order_pricing_context")) return route.fulfill({json:{date:"2026-10-29",discount_bps:2000,revision:2,expires_at:"2026-10-30T04:00:00Z"}});
-    if(!["GET","HEAD"].includes(route.request().method())){await route.abort();throw new Error("Unexpected real order write");}await route.continue();
+    if(!isReadOnlyTestRequest(route.request())){await route.abort();throw new Error("Unexpected real order write");}await route.continue();
   });
   await login(page,"STAFF");await page.goto("/qa-preview/promotion-menu");
   await page.getByPlaceholder("Buscar ítem...").fill("Cappuccino");await page.getByRole("button",{name:"Agregar Cappuccino",exact:true}).click();await page.getByRole("button",{name:"Agregar otro Cappuccino",exact:true}).click();

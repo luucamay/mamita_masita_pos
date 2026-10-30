@@ -19,6 +19,7 @@ export function canAccessPath(profile: unknown, pathname: string): boolean {
   if (!isActiveProfile(profile)) return false;
   if(isWithin(pathname,"/menu"))return profile.role==="admin"||profile.role==="staff";
   if(isWithin(pathname,"/perfil"))return true;
+  if(isWithin(pathname,"/caja"))return profile.role==="admin"||profile.role==="staff";
   if(isWithin(pathname,"/compras-empleados"))return profile.role==="admin"||profile.role==="staff";
   if (isWithin(pathname, "/historial") || isWithin(pathname, "/menu-admin") || isWithin(pathname, "/empleados") || isWithin(pathname, "/promociones")) return profile.role === "admin";
   if (profile.role === "cook") return isWithin(pathname, "/cocina");

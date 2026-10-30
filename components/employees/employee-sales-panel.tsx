@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Employee } from "@/lib/employee-provision";
 import { normalizeEmployeeSales, salesRange, validSalesRange, type EmployeeSales } from "@/lib/employee-sales";
 import { formatOrderDate } from "@/lib/date-time";
+import { CashHistoryPanel } from "@/components/cashbox/cash-history";
 const field = "mt-1 min-h-11 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-base";
 const button = "min-h-11 rounded-xl border border-[var(--border)] bg-white px-3 text-sm font-semibold disabled:opacity-40";
 const money = (n: number) => new Intl.NumberFormat("es-BO", { style: "currency", currency: "BOB" }).format(n);
@@ -37,7 +38,7 @@ export function EmployeeSalesPanel({ employee }: { employee: Employee }) {
    <label className="min-w-0 flex-1 text-sm">Hasta<input type="date" required min={start || "2000-01-01"} max="2099-12-31" value={end} onChange={e => setEnd(e.target.value)} className={field}/></label>
    <button disabled={busy} className="min-h-11 rounded-xl bg-orange-500 px-4 text-sm font-semibold text-white disabled:opacity-40 min-[380px]:col-span-2 sm:col-span-1">Filtrar</button>
   </form>
-  <div className="flex gap-2">{(["day", "week"] as const).map(preset => <button type="button" key={preset} disabled={busy || !result} onClick={() => result && void load(salesRange(result.range.today, preset))} className={button}>{preset === "day" ? "Hoy" : "Esta semana"}</button>)}</div>
+  <div className="flex gap-2">{(["day", "week", "month"] as const).map(preset => <button type="button" key={preset} disabled={busy || !result} onClick={() => result && void load(salesRange(result.range.today, preset))} className={button}>{preset === "day" ? "Hoy" : preset === "week" ? "Esta semana" : "Este mes"}</button>)}</div>
   {error ? <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}<button type="button" disabled={busy} onClick={() => void load(result?.range)} className="ml-2 min-h-11 font-semibold underline">Reintentar</button></p> : null}
   {busy ? <p role="status" className="text-sm text-[var(--muted)]">Cargando historial…</p> : null}
   {result ? <>
@@ -55,6 +56,7 @@ export function EmployeeSalesPanel({ employee }: { employee: Employee }) {
     <details className="mt-1"><summary className="inline-flex min-h-11 cursor-pointer items-center text-xs font-semibold text-orange-800">Ver productos</summary><ul className="space-y-1 text-sm">{order.items.map((item, i) => <li key={i}>{item.quantity} × {item.name}</li>)}</ul></details>
    </li>)}</ul>}
    {result.total_count > result.page_size ? <nav aria-label="Páginas del historial del empleado" className="flex items-center justify-between gap-2"><button type="button" disabled={busy || result.page === 0} onClick={() => void load(result.range, result.page - 1)} className={button}>Anterior</button><span className="text-xs">Página {result.page + 1} de {Math.ceil(result.total_count / result.page_size)}</span><button type="button" disabled={busy || (result.page + 1) * result.page_size >= result.total_count} onClick={() => void load(result.range, result.page + 1)} className={button}>Siguiente</button></nav> : null}
+   <CashHistoryPanel employeeId={employee.id} externalRange={result.range} filters={false} heading="Cierres de caja de este empleado"/>
   </> : null}
  </div>;
 }

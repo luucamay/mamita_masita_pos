@@ -225,7 +225,7 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
   const editorEpoch=selectionEpoch.current;
   if (displayOrders.length === 0 && !selectedOrder) {
     return (
-      <div className="rounded-2xl border border-dashed border-[var(--border)] bg-white px-6 py-16 text-center">
+      <div className="rounded-2xl border border-dashed border-[var(--border)] bg-white px-4 py-6 text-center">
         <p className="font-medium">{closed ? "No hay pedidos cerrados" : "No hay pedidos abiertos"}</p>
         <p className="mt-1 text-sm text-[var(--muted)]">
           {closed ? "Los pedidos pagados aparecerán aquí." : "Los pedidos confirmados aparecerán aquí."}

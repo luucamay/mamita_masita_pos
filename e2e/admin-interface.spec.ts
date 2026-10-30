@@ -1,4 +1,5 @@
 import {test,expect,type Page} from "@playwright/test";
+import {isReadOnlyTestRequest} from "./safe-requests";
 import ExcelJS from "exceljs";
 import reference from "./report-reference.json";
 import {qaEmployees} from "../lib/qa-employee-fixture";
@@ -112,7 +113,7 @@ test("new product and category dialogs validate and save simulated records with 
  await login(page,"ADMIN","/menu-admin");const writes:string[]=[];
  await page.route("**/rest/v1/**",async route=>{
   const request=route.request(),path=new URL(request.url()).pathname;
-  if(request.method()==="GET"||request.method()==="HEAD")return route.continue();
+  if(isReadOnlyTestRequest(request))return route.continue();
   expect(request.method()).toBe("POST");writes.push(path);
   const value=request.postDataJSON();
   if(path.endsWith("/menu_items"))return route.fulfill({json:{...value,id:"00000000-0000-4000-8000-000000009100",active:true}});

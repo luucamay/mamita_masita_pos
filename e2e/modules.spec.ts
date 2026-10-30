@@ -1,3 +1,4 @@
+import {isReadOnlyTestRequest} from "./safe-requests";
 import { expect, test, type Page } from "@playwright/test";
 import { qaOrderCatalog, qaOrderId, qaOrderSnapshot } from "../lib/qa-order-fixture";
 import { qaEmployees } from "../lib/qa-employee-fixture";
@@ -56,7 +57,7 @@ async function mockOrder(page: Page, options: { loseFirstResponse?: boolean; del
       if (options.loseFirstResponse && requests.length === 1) return route.abort("failed");
       return route.fulfill({ json: snapshot });
     }
-    if (!["GET", "HEAD"].includes(route.request().method())) { await route.abort(); throw new Error("Unexpected real mutation in order test"); }
+    if (!isReadOnlyTestRequest(route.request())) { await route.abort(); throw new Error("Unexpected real mutation in order test"); }
     await route.continue();
   });
   await login(page);
@@ -123,7 +124,7 @@ test("P05 admin creates, deactivates and reactivates synthetic employees on desk
   const employees = structuredClone(qaEmployees);
   const mutations: string[] = [];
   await page.route("**/rest/v1/**", async (route) => {
-    if (!["GET", "HEAD"].includes(route.request().method())) { await route.abort(); throw new Error("Unexpected real database mutation"); }
+    if (!isReadOnlyTestRequest(route.request())) { await route.abort(); throw new Error("Unexpected real database mutation"); }
     await route.continue();
   });
   await page.route(/\/api\/employees(?:\/[^/?]+)?(?:\?.*)?$/, async (route) => {
@@ -153,12 +154,13 @@ test("P05 admin creates, deactivates and reactivates synthetic employees on desk
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Agregar empleado", exact: true }).click();
   await page.getByLabel("Nombre completo", { exact: true }).fill("Nueva Cocinera QA");
-  await page.getByLabel("Correo de acceso", { exact: true }).fill("nueva@example.test");
+  await page.getByLabel("Usuario de acceso", { exact: true }).fill("nueva");
   await page.getByLabel("Rol", { exact: true }).selectOption("cook");
   await page.getByLabel("Contraseña inicial", { exact: true }).fill("Synthetic12345");
   await page.getByRole("button", { name: "Crear acceso", exact: true }).click();
+  await page.getByRole("dialog",{name:"Credenciales de acceso",exact:true}).getByRole("button",{name:"Cerrar ventana",exact:true}).click();
   const employee = page.getByRole("article", { name: "Nueva Cocinera QA", exact: true });
-  await expect(employee).toContainText("Cocina"); await expect(employee).toContainText("nueva@example.test");
+  await expect(employee).toContainText("Cocina"); await expect(employee).toContainText("nueva@mamita.local");
   page.once("dialog", (dialog) => dialog.accept());
   await employee.getByRole("button", { name: "Desactivar acceso" }).click();
   await expect(employee).toContainText("Inactivo");
@@ -178,12 +180,13 @@ test("P05 preserves the creation form and operation ID after a failed response",
   });
   await login(page, "ADMIN"); await page.goto("/qa-preview/employees");
   await page.getByRole("button", { name: "Agregar empleado", exact: true }).click();
-  await page.getByLabel("Nombre completo").fill("Retry QA"); await page.getByLabel("Correo de acceso").fill("retry@example.test"); await page.getByLabel("Contraseña inicial").fill("Synthetic12345");
+  await page.getByLabel("Nombre completo").fill("Retry QA"); await page.getByLabel("Usuario de acceso").fill("retry"); await page.getByLabel("Contraseña inicial").fill("Synthetic12345");
   await page.getByRole("button", { name: "Crear acceso", exact: true }).click();
   await expect(page.locator('p[role="alert"]')).toContainText("Reintenta");
   await expect(page.getByLabel("Nombre completo")).toHaveValue("Retry QA");
   await page.getByRole("button", { name: "Crear acceso", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("primer intento");
+  await page.getByRole("dialog",{name:"Credenciales de acceso",exact:true}).getByRole("button",{name:"Cerrar ventana",exact:true}).click();
+  await expect(page.getByRole("status").filter({hasText:"primer intento"})).toBeVisible();
   expect(requests).toHaveLength(2); expect(requests[0]).toBe(requests[1]);
 });
 

@@ -1,8 +1,8 @@
 import "server-only";
 import { getActiveAccess } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { EmployeeError, employeeInput, provisionEmployee, type Employee, type AuthIdentity } from "@/lib/employee-provision";
+import { createAdminClient, passwordRequestFingerprint } from "@/lib/supabase/admin";
+import { EmployeeError, employeeInput, isUuid, provisionEmployee, type Employee, type AuthIdentity } from "@/lib/employee-provision";
 
 function rpcFailure(error: { code?: string } | null) {
   if (!error) return;
@@ -72,4 +72,28 @@ export async function setEmployeeActive(id: string, active: boolean, updatedAt: 
   const { client } = await employeeContext();
   const { data, error } = await client.rpc("admin_set_employee_active", { p_employee_id: id, p_active: active, p_expected_updated_at: updatedAt });
   rpcFailure(error); return data;
+}
+
+export async function resetEmployeePassword(id: string, value: Record<string, unknown>) {
+  const { client, actorId } = await employeeContext();
+  if (!isUuid(id) || id === actorId || !isUuid(value.requestId) || typeof value.password !== "string" || value.password.length < 12 || value.password.length > 128 || !/[a-zA-Z]/.test(value.password) || !/[0-9]/.test(value.password)) throw new EmployeeError(400, "Revisa la cuenta y la contraseña inicial.");
+  const fingerprint = passwordRequestFingerprint(id, value.requestId, value.password);
+  const prepared = await client.rpc("admin_prepare_password_reset", { p_request: value.requestId, p_employee: id, p_fingerprint: fingerprint });
+  rpcFailure(prepared.error);
+  const admin = createAdminClient();
+  const found = await admin.auth.admin.getUserById(id);
+  if (found.error || !found.data.user) throw new EmployeeError(503, "No se pudo verificar la cuenta. Reintenta la misma operación.");
+  let user = found.data.user;
+  const alreadyApplied = user.app_metadata.mamita_password_reset_request === value.requestId;
+  if (prepared.data?.status === "completed" && !alreadyApplied) throw new EmployeeError(409, "La contraseña cambió después de esta operación. Genera una nueva.");
+  if (!alreadyApplied) {
+    // Recheck the live administrator after reading Auth, before the privileged write.
+    await employeeContext();
+    const changed = await admin.auth.admin.updateUserById(id, { password: value.password, app_metadata: { ...user.app_metadata, mamita_password_reset_request: value.requestId } });
+    if (changed.error || !changed.data.user) throw new EmployeeError(503, "No se pudo confirmar el cambio. Reintenta la misma operación sin generar otra contraseña.");
+    user = changed.data.user;
+  }
+  const completed = await client.rpc("admin_complete_password_reset", { p_request: value.requestId });
+  rpcFailure(completed.error);
+  return { employee: { id, email: user.email ?? "" }, resumed: alreadyApplied };
 }

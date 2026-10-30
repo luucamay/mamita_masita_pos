@@ -1,6 +1,8 @@
 # Administración compacta y reportes
 Fecha: 30/10/2026. Proyecto oficial: `mamita_masita_pos`. Rama: `desarrollo/mejoras-octubre-2026`.
 
+**Actualización posterior:** el alta ahora usa un usuario corto con sufijo fijo `@mamita.local`; la entrega de credenciales y el reemplazo de contraseñas se gestionan en un modal. Se agregó caja compartida por turnos e historial de cierres. Ver [reglas vigentes y guía](ACCESOS_TURNOS_Y_ATENCION_2026-10-30.md); reemplaza los ejemplos anteriores de entrada libre de correo y entrega de contraseñas.
+
 ## Cambios entregados
 
 | Área | Comportamiento |
