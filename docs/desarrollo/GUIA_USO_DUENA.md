@@ -20,6 +20,8 @@ La contraseña recién creada está disponible mientras permanezcas en esa vista
 
 Desactivar acceso conserva el historial. Reactivar permite volver a entrar. El historial de ventas atribuye los pedidos a quien los registró y muestra por separado quién cobró. Inicia en hoy y permite semana, mes y fechas. También muestra los cierres del empleado.
 
+Actualización 03/11: al desactivar desde Empleados, las sesiones conectadas comprueban el acceso y vuelven al login sin una actualización manual. Si el teléfono estaba sin conexión o suspendido, se comprueba al regresar. Para entregar la aplicación a una empleada, usa Compartir app por WhatsApp en la ventana de credenciales: abre un borrador con el enlace e instrucciones de instalación. El mensaje no incluye la contraseña; entrégala por separado y en privado.
+
 ## 2. Tomar y modificar pedidos
 
 1. Busca un producto o despliega su categoría y toca Agregar.

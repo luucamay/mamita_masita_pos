@@ -6,5 +6,5 @@ import { qaEmployees, qaEmployeeActor } from "@/lib/qa-employee-fixture";
 export default async function QaEmployeesPage() {
   if (process.env.MAMITA_QA_BUILD !== "true") notFound();
   await requireRoles(["admin"]);
-  return <EmployeesPanel initialEmployees={qaEmployees} actorId={qaEmployeeActor} />;
+  return <EmployeesPanel initialEmployees={qaEmployees} actorId={qaEmployeeActor} appOrigin="https://mamita.example.test" />;
 }

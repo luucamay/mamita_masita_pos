@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { isActiveProfile, safeLoginDestination } from "@/lib/permissions";
@@ -11,6 +11,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [accessNotice,setAccessNotice]=useState(false);
+  useEffect(()=>{setAccessNotice(new URL(window.location.href).searchParams.get("reason")==="inactive");},[]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -64,6 +66,7 @@ export default function LoginPage() {
           Ingresa con tu cuenta del equipo para acceder al menú y gestionar pedidos.
         </p>
 
+        {accessNotice?<p role="status" className="mb-4 rounded-xl bg-orange-50 px-3 py-2 text-sm text-orange-900">La sesión terminó porque tu acceso ya no está disponible. Consulta con la administradora.</p>:null}
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block text-sm font-medium">
             Correo electrónico

@@ -58,8 +58,10 @@ test("employee history supports day, week and custom ranges, separate cashier an
 test("real admin history is protected at HTTP and database boundaries; invalid ranges are rejected",async({page})=>{
  const id="fcfe27e4-1061-4d2f-b55b-7ba2dbdf602d",url=`/api/employees/${id}/sales`;
  expect((await page.request.get(url)).status()).toBe(401);
- await login(page,"STAFF","/");expect((await page.request.get(url)).status()).toBe(403);
- await page.getByRole("button",{name:"Salir",exact:true}).click();
+ // The old STAFF QA identity is intentionally inactive; use another active
+ // non-admin without reactivating accounts merely to satisfy this assertion.
+ await login(page,"COOK","/cocina");expect((await page.request.get(url)).status()).toBe(403);
+ await page.getByRole("button",{name:"Salir",exact:true}).click();await expect(page).toHaveURL(/\/login/);
  await login(page);
  const response=await page.request.get(url+"?start=2031-01-01&end=2031-01-01");
  expect(response.status()).toBe(200);expect(response.headers()["cache-control"]).toContain("no-store");
