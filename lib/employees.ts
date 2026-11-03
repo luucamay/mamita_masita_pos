@@ -44,7 +44,9 @@ export async function listEmployees() {
   const [users, profiles] = await Promise.all([identities(admin), client.from("profiles").select("id,full_name,role,active,updated_at").order("full_name")]);
   if (profiles.error) throw new EmployeeError(503, "No se pudieron consultar los perfiles.");
   const emails = new Map(users.map((user) => [user.id, user.email ?? ""]));
-  return { actorId, employees: (profiles.data ?? []).map((profile) => ({ ...profile, email: emails.get(profile.id) ?? "" })) as Employee[] };
+  // Retired Auth identities can keep an inactive profile for audit references.
+  // Only identities that still exist belong in the employee access directory.
+  return { actorId, employees: (profiles.data ?? []).filter((profile) => emails.has(profile.id)).map((profile) => ({ ...profile, email: emails.get(profile.id) ?? "" })) as Employee[] };
 }
 
 export async function addEmployee(value: unknown) {

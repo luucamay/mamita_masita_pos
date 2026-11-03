@@ -1,5 +1,7 @@
 # Desarrollo de mejoras de octubre de 2026
 
+**03/11, retiro de QA:** eliminadas las seis identidades de prueba de Supabase Auth, sesiones revocadas y credenciales locales retiradas. Los perfiles quedan inactivos para conservar la auditoría; el directorio excluye identidades eliminadas. Las seis cuentas reales permanecen intactas. Ver [retiro y verificación](RETIRO_CUENTAS_QA_2026-11-03.md).
+
 **03/11, historial de empleados:** corregido el rechazo de identificadores antiguos de Staff User y Admin User. El historial incorpora actualización automática y botón Actualizar, conservando el período elegido. Sin migración ni cambios en ventas. Ver [diagnóstico y verificación](FIX_HISTORIAL_EMPLEADOS_2026-11-03.md).
 
 **03/11, horarios y reinicio:** mañana 10:00–14:00 y tarde 14:00–21:30 de Bolivia. Apertura obligatoria, recordatorio cinco minutos antes, cierre/recepción manuales y bloqueo de caja vencida en Supabase. Dos cuentas pueden cobrar en la misma caja. Migración `20261103212027` aplicada; retiradas las cinco pruebas nuevas y los dos turnos, con respaldo e historial anterior conservado. 87 pruebas SQL, 55 de lógica y 10 de navegador aprobadas. Ver [implementación y guía](HORARIOS_CAJA_2026-11-03.md).
