@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import {useCashbox} from "@/components/cashbox/cashbox-provider";
+import {cashAvailabilityMessage} from "@/lib/cash-schedule";
 import { useRouter } from "next/navigation";
 import {
   CloseIcon,
@@ -45,6 +48,7 @@ function formatCategoryName(name: string) {
 export function MenuHome({ categories, items, loadError, pricing = null, pricingError }: MenuHomeProps) {
   const { quote, quoteError, checking, refreshQuote } = usePricingContext(pricing, pricingError);
   const router = useRouter();
+  const cashbox=useCashbox();
   const linesRef = useRef<HTMLDivElement>(null);
   const tableRef=useRef<HTMLFieldSetElement>(null);
   const [search, setSearch] = useState("");
@@ -163,6 +167,7 @@ export function MenuHome({ categories, items, loadError, pricing = null, pricing
   }
 
   async function handleConfirmDraft() {
+    if(!cashbox.allowed){setMessage(cashbox.error||cashAvailabilityMessage(cashbox.state));return;}
     if (!quote || quoteError || checking || saving || unavailable) { setMessage("Actualiza el menú y revisa el pedido antes de confirmar."); return; }
     if (!tableNumber.trim()) {
       tableRef.current?.scrollIntoView({block:"nearest"});
@@ -263,11 +268,12 @@ export function MenuHome({ categories, items, loadError, pricing = null, pricing
             <div className="divide-y divide-[var(--border)]">{!lines.length?<p className="py-6 text-center text-sm text-[var(--muted)]">Pedido vacío</p>:lines.map(line=><div key={line.menuItemId} className="py-1"><div className="flex items-center justify-between gap-2"><p className="min-w-0 break-words text-sm font-medium">{line.name}</p><button type="button" aria-label={`Quitar ${line.name}`} onClick={()=>removeLine(line.menuItemId)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-red-50"><TrashIcon className="h-4 w-4"/></button></div><div className="flex items-center justify-between gap-2"><div className="flex items-center gap-1"><button type="button" aria-label={`Disminuir ${line.name} del pedido`} onClick={()=>updateQuantity(line.menuItemId,-1)} className="flex h-11 w-11 items-center justify-center rounded-lg bg-stone-100"><MinusIcon className="h-4 w-4"/></button><span className="min-w-6 text-center text-sm font-semibold">{line.quantity}</span><button type="button" aria-label={`Aumentar ${line.name} del pedido`} onClick={()=>updateQuantity(line.menuItemId,1)} className="flex h-11 w-11 items-center justify-center rounded-lg bg-orange-100 text-orange-800"><PlusIcon className="h-4 w-4"/></button></div><p className="text-sm font-semibold tabular-nums">{formatMoney((priced.lines.find(item=>item.id===line.menuItemId)?.netCents??0)/100)}</p></div></div>)}</div>
           </div>
           <div className="shrink-0 space-y-2 border-t border-[var(--border)] px-3 py-2">
+            {!cashbox.allowed?<div className="flex items-center justify-between gap-2 text-xs text-orange-900"><p>{cashbox.error||cashAvailabilityMessage(cashbox.state)}</p><Link href="/caja" className="inline-flex min-h-11 shrink-0 items-center font-semibold underline">Ir a Caja y turnos</Link></div>:null}
             {message?<p role="alert" className="rounded-lg bg-orange-50 p-2 text-sm text-orange-900">{message}</p>:null}
             {quote?.discount_bps?<><div className="flex justify-between text-xs text-[var(--muted)]"><span>Subtotal</span><span>{formatMoney(priced.grossCents/100)}</span></div><div className="flex justify-between text-xs text-orange-800"><span>Descuento ({discountLabel(quote.discount_bps)})</span><span>−{formatMoney(priced.discountCents/100)}</span></div></>:null}
             <div className="flex justify-between font-semibold"><span>Total</span><span>{formatMoney(priced.netCents/100)}</span></div>
             {tableNumber==="Para llevar"?<div role="group" aria-label="Medio de pago" className="grid grid-cols-2 gap-2">{(["cash","qr"] as const).map(method=><button key={method} type="button" aria-pressed={paymentMethod===method} onClick={()=>setPaymentMethod(method)} className={`min-h-11 rounded-lg border text-sm font-semibold ${paymentMethod===method?"border-orange-500 bg-orange-50 text-orange-900":"border-[var(--border)]"}`}>{method==="cash"?"Efectivo":"QR"}</button>)}</div>:null}
-            <div className="grid grid-cols-[auto_1fr] gap-2"><button type="button" onClick={resetOrder} disabled={saving} className="min-h-11 rounded-lg border border-[var(--border)] px-3 text-sm">Cancelar</button><button type="button" disabled={saving||checking||!quote||!!quoteError||unavailable||!lines.length} onClick={handleConfirmDraft} className="min-h-11 rounded-lg bg-orange-500 px-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50">{saving?"Guardando...":tableNumber==="Para llevar"?"Cobrar y registrar":"Registrar pedido"}</button></div>
+            <div className="grid grid-cols-[auto_1fr] gap-2"><button type="button" onClick={resetOrder} disabled={saving} className="min-h-11 rounded-lg border border-[var(--border)] px-3 text-sm">Cancelar</button><button type="button" disabled={!cashbox.allowed||saving||checking||!quote||!!quoteError||unavailable||!lines.length} onClick={handleConfirmDraft} className="min-h-11 rounded-lg bg-orange-500 px-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50">{saving?"Guardando...":tableNumber==="Para llevar"?"Cobrar y registrar":"Registrar pedido"}</button></div>
           </div>
         </div>:null}
       </aside>

@@ -11,3 +11,11 @@ export function qaCashContext(state="empty",actor=qaCashActor):CashContext{
  return {version:1,actor_id:actor,server_time:"2026-10-30T20:00:00Z",enabled:state!=="empty",shift,receipts:state==="empty"?[]:receipts,digest:"fixture-digest",summary:{cash:state==="empty"?0:50,qr:state==="empty"?0:20,other:0,receipts:state==="empty"?0:2,expected_cash:state==="empty"?0:150}};
 }
 export function qaCashHistory():CashHistory{return {range:{start:"2026-10-30",end:"2026-10-30",today:"2026-10-30"},page:0,page_size:25,total_count:0,shifts:[]};}
+
+export function qaScheduledCashContext(state="open",actor=qaCashActor):CashContext{
+ const context=qaCashContext(state==="closed"?"empty":"open",actor);
+ context.enabled=true;context.server_time=state==="warning"?"2026-11-03T17:56:00Z":state==="expired"?"2026-11-03T18:00:00Z":"2026-11-03T17:00:00Z";
+ context.schedule={slot:state==="expired"?"afternoon":"morning",label:state==="expired"?"Tarde":"Mañana",date:"2026-11-03",starts_at:state==="expired"?"2026-11-03T18:00:00Z":"2026-11-03T14:00:00Z",ends_at:state==="expired"?"2026-11-04T01:30:00Z":"2026-11-03T18:00:00Z",in_hours:true};
+ if(context.shift)Object.assign(context.shift,{opened_at:"2026-11-03T14:00:00Z",shift_slot:"morning",scheduled_start_at:"2026-11-03T14:00:00Z",scheduled_end_at:"2026-11-03T18:00:00Z"});
+ return context;
+}

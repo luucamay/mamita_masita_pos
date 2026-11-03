@@ -4,6 +4,9 @@ import {createClient} from "@/lib/supabase/client";
 import {normalizeCashContext,normalizeCashShift,type CashContext,type CashHistory} from "@/lib/cashbox";
 import {toCents} from "@/lib/money";
 import {formatOrderDate} from "@/lib/date-time";
+import {ShiftNotice} from "./shift-notice";
+import {useCashbox,useCashClock} from "./cashbox-provider";
+import {cashAvailability,shiftLabel,shiftHours} from "@/lib/cash-schedule";
 import {Modal} from "@/components/ui/modal";
 import {useHeaderRefresh} from "@/lib/use-header-refresh";
 import {useCashboxUpdates} from "@/lib/use-cashbox-updates";
@@ -12,6 +15,7 @@ const field="mt-1 min-h-11 w-full rounded-xl border border-[var(--border)] bg-wh
 const primary="min-h-11 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40";
 const secondary="min-h-11 rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold disabled:opacity-40";
 export function CashboxPanel({initial,history,actorId,role,initialError}:{initial:CashContext|null;history:CashHistory|null;actorId:string;role:string;initialError:string|null}){
+ const sharedCashbox=useCashbox();
  const [context,setContext]=useState(initial),[error,setError]=useState(initialError??""),[notice,setNotice]=useState(""),[busy,setBusy]=useState(false),[refreshing,setRefreshing]=useState(false),[generation,setGeneration]=useState(0);
  const [mode,setMode]=useState<"open"|"receive"|"close"|null>(null),[cut,setCut]=useState<CashContext|null>(null),[count,setCount]=useState(""),[withdrawal,setWithdrawal]=useState("0"),[note,setNote]=useState(""),[ack,setAck]=useState(false),[formError,setFormError]=useState("");
  const operation=useRef<{payload:string;id:string}|null>(null);
@@ -41,22 +45,24 @@ export function CashboxPanel({initial,history,actorId,role,initialError}:{initia
   setBusy(true);setFormError("");
   try{
    const result=await createClient().rpc(mode==="close"?"close_cashbox_shift":"open_cashbox_shift",{...args,p_request_id:operation.current.id});
-   if(result.error)throw Error(result.error.code==="40001"?result.error.message:result.error.code==="42501"?"No tienes permiso para esta operación.":result.error.code==="22023"?result.error.message:"No se pudo confirmar el resultado. Reintenta la misma operación.");
+   if(result.error)throw Error(result.error.code==="40001"?result.error.message:result.error.code==="42501"?"No tienes permiso para esta operación.":["22023","55000"].includes(result.error.code)?result.error.message:"No se pudo confirmar el resultado. Reintenta la misma operación.");
    const saved=normalizeCashShift(result.data);
    setContext({...cut,enabled:true,shift:saved,receipts:saved.closing_snapshot,digest:"refresh",summary:{cash:saved.cash_net,qr:saved.qr_net,other:saved.other_net,receipts:saved.receipt_count,expected_cash:saved.opening_cash+saved.cash_net}});
    setNotice(mode==="close"?"Cierre registrado. El siguiente cajero debe contar y recibir el efectivo.":mode==="receive"?"Recepción registrada. Tu turno quedó abierto con el importe contado.":"Turno abierto. Los nuevos cobros se registrarán en esta caja.");
-   setMode(null);operation.current=null;setGeneration(v=>v+1);await refresh();
+   setMode(null);operation.current=null;setGeneration(v=>v+1);await refresh();void sharedCashbox.refresh();
   }catch(failure){setFormError(failure instanceof Error?failure.message:"No se pudo confirmar la operación.");}finally{setBusy(false);}
  }
  const shift=context?.shift;
+ const now=useCashClock(context),expired=cashAvailability(context,now)==="expired",outsideHours=context?.schedule?.in_hours===false;
  return <div className="mx-auto max-w-6xl space-y-3 px-3 py-3 sm:px-5">
-  <header><h1 className="text-xl font-semibold">Caja y turnos</h1><p className="mt-1 text-xs leading-5 text-[var(--muted)]">Abre con el efectivo inicial. Al salir, cuenta y entrega. Quien entra cuenta lo recibido y abre su turno.</p></header>
+  {context?<ShiftNotice context={context} showOpen={false}/>:null}
+  <header><h1 className="text-xl font-semibold">Caja y turnos</h1><p className="mt-1 text-xs leading-5 text-[var(--muted)]">Mañana 10:00–14:00 · Tarde 14:00–21:30 · Bolivia. Una caja compartida por turno; cada persona usa su cuenta.</p></header>
   {error?<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}<button type="button" onClick={()=>void refresh()} className="ml-2 min-h-11 font-semibold underline">Reintentar</button></p>:null}
   {notice?<p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">{notice}</p>:null}
   {refreshing?<p className="text-xs text-[var(--muted)]">Actualizando caja…</p>:null}
   {context?<section aria-label="Turno actual" className="space-y-3 rounded-2xl border border-[var(--border)] bg-white p-3">
-   {!shift?<><h2 className="font-semibold">Sin turno abierto</h2><p className="text-sm text-[var(--muted)]">Cuenta el dinero que hay en caja antes de empezar. Desde la primera apertura, los cobros requieren un turno abierto.</p><button type="button" onClick={()=>open("open")} disabled={busy||refreshing} className={primary}>Abrir caja</button></>:shift.status==="open"?<>
-    <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-semibold">Caja de {shift.cashier_name}</h2><p className="mt-0.5 text-xs text-[var(--muted)]">Abierta: {formatOrderDate(shift.opened_at)} · Inicial: {cashMoney(shift.opening_cash)}</p></div><span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800">Turno abierto</span></div>
+   {!shift?<><h2 className="font-semibold">Sin turno abierto</h2><p className="text-sm text-[var(--muted)]">Cuenta el dinero que hay en caja antes de empezar. Para registrar pedidos o cobrar debes abrir o recibir el turno.</p><button type="button" onClick={()=>open("open")} disabled={busy||refreshing||outsideHours} className={primary}>Abrir caja</button></>:shift.status==="open"?<>
+    <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-semibold">{shiftLabel(shift)} · {shift.cashier_name}</h2><p className="text-xs text-orange-800">{shiftHours(shift)}</p><p className="mt-0.5 text-xs text-[var(--muted)]">Abierta: {formatOrderDate(shift.opened_at)} · Inicial: {cashMoney(shift.opening_cash)}</p></div><span className={`rounded-full px-2 py-1 text-xs font-semibold ${expired?"bg-orange-50 text-orange-900":"bg-emerald-50 text-emerald-800"}`}>{expired?"Pendiente de cierre":"Turno abierto"}</span></div>
     <dl className="grid grid-cols-3 gap-2 rounded-xl bg-orange-50 p-3 text-xs"><div><dt>Efectivo del turno</dt><dd className="mt-1 text-sm font-semibold tabular-nums">{cashMoney(context.summary.cash)}</dd></div><div><dt>QR del turno</dt><dd className="mt-1 text-sm font-semibold tabular-nums">{cashMoney(context.summary.qr)}</dd></div><div><dt>Efectivo esperado</dt><dd className="mt-1 text-sm font-semibold tabular-nums text-orange-900">{cashMoney(context.summary.expected_cash)}</dd></div></dl>
     <p className="text-xs text-[var(--muted)]">Esperado = efectivo inicial + cobros en efectivo − devoluciones. QR sirve como referencia.</p>
     {context.summary.other!==0?<p className="text-xs">Otros pagos: {cashMoney(context.summary.other)}</p>:null}
@@ -65,13 +71,14 @@ export function CashboxPanel({initial,history,actorId,role,initialError}:{initia
    </>:<>
     <h2 className="font-semibold">Caja entregada, pendiente de recepción</h2><p className="text-sm">{shift.cashier_name} dejó <strong>{cashMoney(shift.cash_left??0)}</strong>{shift.closed_at?" · "+formatOrderDate(shift.closed_at):""}.</p>
     {shift.difference!==0?<p className="text-xs text-red-800">El cierre tiene una diferencia de {cashMoney(shift.difference??0)}.</p>:null}
-    <p className="text-xs text-[var(--muted)]">Cuenta el efectivo antes de confirmar. La recepción quedará con tu nombre y abrirá tu turno.</p><button type="button" onClick={()=>open("receive")} disabled={busy||refreshing} className={primary}>Recibir caja e iniciar turno</button>
+    <p className="text-xs text-[var(--muted)]">Cuenta el efectivo antes de confirmar. La recepción quedará con tu nombre y abrirá tu turno.</p><button type="button" onClick={()=>open("receive")} disabled={busy||refreshing||outsideHours} className={primary}>Recibir caja e iniciar turno</button>
    </>}
   </section>:null}
   <CashHistoryPanel initial={history} employeeId={role==="admin"?null:actorId} refreshToken={generation} heading={role==="admin"?"Cierres del equipo":"Mis cierres de caja"}/>
   <Modal open={mode!==null} title={mode==="close"?"Cerrar y entregar caja":mode==="receive"?"Recibir caja":"Abrir caja"} busy={busy} onClose={()=>{if(!busy)setMode(null);}}>
    <form onSubmit={submit} className="space-y-3">
     {mode==="close"?<><p className="text-sm">Efectivo esperado: <strong>{cashMoney(expected)}</strong> · QR: {cashMoney(cut?.summary.qr??0)}</p><p className="text-xs text-[var(--muted)]">Cuenta todo el efectivo antes de retirar dinero.</p></>:mode==="receive"?<p className="text-sm">{cut?.shift?.cashier_name} declaró que dejó <strong>{cashMoney(cut?.shift?.cash_left??0)}</strong>. Cuenta cuánto recibes.</p>:null}
+    {mode!=="close"&&context?.schedule?<p className="rounded-lg bg-orange-50 p-2 text-sm"><strong>{context.schedule.label}</strong> · {new Intl.DateTimeFormat("es-BO",{timeZone:"America/La_Paz",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date(context.schedule.starts_at))}–{new Intl.DateTimeFormat("es-BO",{timeZone:"America/La_Paz",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date(context.schedule.ends_at))}. Cuenta el efectivo real: no se abre automáticamente.</p>:null}
     <label className="block text-sm font-medium">{mode==="close"?"Efectivo contado (Bs)":mode==="receive"?"Efectivo recibido (Bs)":"Efectivo inicial para cambio (Bs)"}<input required inputMode="decimal" autoComplete="off" value={count} onChange={e=>setCount(e.target.value)} className={field}/></label>
     {mode==="close"?<><label className="block text-sm">Retiro de efectivo (Bs, opcional)<input inputMode="decimal" autoComplete="off" value={withdrawal} onChange={e=>setWithdrawal(e.target.value)} className={field}/></label>{counted!==null&&removed!==null&&removed<=counted?<p className="rounded-xl bg-orange-50 p-3 text-sm font-semibold">Dejas en caja: {cashMoney((counted-removed)/100)}</p>:null}</>:null}
     {mode!=="open"&&difference!==null?<p className={"text-sm font-medium "+(difference===0?"text-emerald-800":"text-red-800")}>{difference===0?"El conteo cuadra":"Diferencia: "+cashMoney(difference/100)}</p>:null}
