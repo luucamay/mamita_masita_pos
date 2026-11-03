@@ -16,6 +16,12 @@ async function open(input: SalesReport) {
   const book = new ExcelJS.Workbook(); await book.xlsx.load(bytes.buffer); return book;
 }
 
+test("Receipt observations export separately, as literal text, with signed amounts and Bolivia time",async()=>{
+ const value=report();value.observations=[{source_kind:"movement",source_id:"note",order_id:"order",order_number:"20261017-001",recorded_at:"2026-10-18T02:30:00Z",method:"cash",amount:-10,kind:"adjustment",received_by:"staff",receiver_name:"Ana",purchase_type:"employee",observation:'=HYPERLINK("https://invalid.test")\nDevolución autorizada'}];
+ const book=await open(value),notes=book.getWorksheet("Observaciones")!;
+ assert.equal(book.worksheets.length,3);assert.equal(notes.getCell("A6").value,"20261017-001 · Empleado");assert.match(String(notes.getCell("B6").value),/17\/10\/26/);assert.equal(notes.getCell("D6").value,-10);assert.equal(notes.getCell("F6").type,ExcelJS.ValueType.String);assert.equal(notes.getCell("F6").value,value.observations[0].observation);assert.equal(notes.getCell("F6").formula,undefined);assert("ySplit" in notes.views[0]);assert.equal(notes.views[0].ySplit,5);assert.equal(book.getWorksheet("Ventas")!.getCell("A6").result,63);
+});
+
 test("Refund Excel keeps negative units and net cash values as numeric cells",async()=>{
   const value=report();value.rows=[{...value.rows[0],quantity:-1,total_sale_value:-10}];value.filtered={total:-10,orders:1,units:-1};value.summary={total:-10,orders:1,units:-1,cash:{amount:-10,orders:1},qr:{amount:0,orders:0},other:{amount:0,orders:0}};
   const book=await open(value),sheet=book.getWorksheet("Ventas")!;assert.equal(sheet.getCell("A6").result,-10);assert.equal(sheet.getCell("B9").value,-1);assert.equal(sheet.getCell("C9").value,-10);

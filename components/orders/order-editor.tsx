@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { normalizeOrderSnapshot, orderIsEditable, type OrderChange, type OrderSnapshot } from "@/lib/order-edit";
 import { priceOrder } from "@/lib/money";
 import { discountLabel } from "@/lib/promotions";
+import { PaymentObservation } from "./payment-observation";
 
 type Product = { id: string; name: string; price: number };
 type Addition = Product & { quantity: number };
@@ -21,6 +22,7 @@ export function OrderEditor({ orderId, onSaved, onCancel, catalog }: { orderId: 
   const [query, setQuery] = useState("");
   const [adjustmentMethod,setAdjustmentMethod]=useState<"cash"|"qr"|null>(null);
   const [confirmedAdjustment,setConfirmedAdjustment]=useState(false);
+  const [paymentObservation,setPaymentObservation]=useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [backendReady, setBackendReady] = useState(false);
@@ -87,11 +89,12 @@ export function OrderEditor({ orderId, onSaved, onCancel, catalog }: { orderId: 
   async function save() {
     if (!backendReady || !snapshot || !editable || !preview || !quantitiesValid || !changes.length || !remainingCount) return;
     if(prepaid&&delta!==0&&(!adjustmentMethod||!confirmedAdjustment))return;
-    const payload = JSON.stringify({changes,method:adjustmentMethod,delta});
+    const observation=prepaid?paymentObservation.trim():"";
+    const payload = JSON.stringify({changes,method:adjustmentMethod,delta,observation});
     if (request.current?.payload !== payload) request.current = { payload, id: crypto.randomUUID() };
     setSaving(true); setError(null);
     try {
-      const { data, error: failure } = await createClient().rpc(prepaid?"edit_prepaid_order":"edit_order", { p_order_id: orderId, p_expected_revision: snapshot.order.revision, p_changes: changes, ...(prepaid?{p_method:adjustmentMethod,p_expected_delta:delta}:{}), p_request_id: request.current!.id });
+      const { data, error: failure } = await createClient().rpc(prepaid?(observation?"edit_prepaid_order_with_observation":"edit_prepaid_order"):"edit_order", { p_order_id: orderId, p_expected_revision: snapshot.order.revision, p_changes: changes, ...(prepaid?{p_method:adjustmentMethod,p_expected_delta:delta}:{}), ...(observation?{p_observation:observation}:{}), p_request_id: request.current!.id });
       if (failure) {
         setError(failure.code === "PGRST202" ? "La edición de pedidos todavía no está habilitada en el sistema." : failure.message);
       } else if (data?.order && Array.isArray(data.items)) onSaved(normalizeOrderSnapshot(data));
@@ -135,6 +138,7 @@ export function OrderEditor({ orderId, onSaved, onCancel, catalog }: { orderId: 
           {prepaid&&delta!==0?<div className="space-y-2 rounded-lg bg-orange-50 p-2"><p className="text-sm font-semibold">{delta>0?"Cobrar":"Devolver"}: {money(Math.abs(delta))}</p><div role="group" aria-label="Medio del ajuste" className="flex gap-2">{(["cash","qr"] as const).map(method=><button key={method} type="button" aria-pressed={adjustmentMethod===method} onClick={()=>setAdjustmentMethod(method)} className={`min-h-11 flex-1 rounded-lg border text-sm ${adjustmentMethod===method?"border-orange-500 bg-orange-100":"border-[var(--border)] bg-white"}`}>{method==="cash"?"Efectivo":"QR"}</button>)}</div><label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={confirmedAdjustment} onChange={event=>setConfirmedAdjustment(event.target.checked)}/>{delta>0?"Confirmo que recibí la diferencia":"Confirmo que devolví la diferencia"}</label></div>:null}
         </> : null}
       </> : null}
+      {prepaid&&editable?<PaymentObservation value={paymentObservation} onChange={setPaymentObservation} disabled={saving}/>:null}
       <div className="flex flex-wrap gap-3">
         <button type="button" onClick={() => void save()} disabled={loading || saving || !backendReady || !editable || !changes.length || !preview || !quantitiesValid || !remainingCount || prepaid&&delta!==0&&(!adjustmentMethod||!confirmedAdjustment)} className="min-h-11 flex-1 rounded-xl bg-orange-500 px-4 py-3 font-semibold text-white disabled:opacity-40">{saving ? "Guardando…" : "Guardar cambios"}</button>
         <button type="button" disabled={saving} onClick={onCancel} className="min-h-11 rounded-xl border border-[var(--border)] px-4 py-3 font-semibold">Cancelar cambios</button>

@@ -15,7 +15,7 @@ test.beforeEach(async({page})=>{
 
 test("production build excludes every QA preview and preserves real report/export reconciliation",async({page})=>{
  await login(page);
- for(const route of ["employees","orders","cashbox","employee-purchase","employee-purchase-cashier","promotions","promotion-menu"]){
+ for(const route of ["payment-observations","employees","orders","cashbox","employee-purchase","employee-purchase-cashier","promotions","promotion-menu"]){
   expect((await page.request.get("/qa-preview/"+route)).status(),route).toBe(404);
  }
  const response=await page.request.get("/historial/export?period=monthly&date=2026-10-01&payment=all&purchase=all");

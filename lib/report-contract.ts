@@ -1,4 +1,5 @@
 import type { ReportFilters } from "./report-filters";
+import type { CashReceipt } from "./cashbox";
 export type SalesReportRow = {
   date: string; menu_item_id?: string | null; product_or_service: string; quantity: number; unit_price: number | null; total_sale_value: number;
   payment_method: "cash" | "qr" | "card" | null; purchase_type?: "customer" | "employee"; buyer_employee_id?: string | null; order_time?: string;
@@ -8,7 +9,7 @@ export type SalesReport = {
   range: { period: ReportFilters["period"]; date: string; start_date: string; end_date_exclusive: string; time_zone: "America/La_Paz" };
   filters: { payment: ReportFilters["payment"]; purchase: ReportFilters["purchase"] };
   summary: { total: number; orders: number; units: number; cash: MethodTotal; qr: MethodTotal; other: MethodTotal };
-  filtered: { total: number; orders: number; units: number }; rows: SalesReportRow[];
+  filtered: { total: number; orders: number; units: number }; rows: SalesReportRow[]; observations?:CashReceipt[];
 };
 export function normalizeSalesReport(value: unknown): SalesReport {
   if (!value || typeof value !== "object") throw new Error("Respuesta de reporte inválida");
@@ -19,5 +20,10 @@ export function normalizeSalesReport(value: unknown): SalesReport {
   };
   if (!report.range?.start_date || !report.summary || !report.filtered || !Array.isArray(report.rows)) throw new Error("Respuesta de reporte incompleta");
   const method = (entry: MethodTotal) => ({ amount: number(entry.amount), orders: number(entry.orders,true) });
-  return { ...report, summary: { ...report.summary, total: number(report.summary.total), orders: number(report.summary.orders,true), units: number(report.summary.units), cash: method(report.summary.cash), qr: method(report.summary.qr), other: method(report.summary.other) }, filtered: { total: number(report.filtered.total), orders: number(report.filtered.orders,true), units: number(report.filtered.units) }, rows: report.rows.map(row => ({ ...row, quantity: number(row.quantity), unit_price: row.unit_price === null ? null : number(row.unit_price,true), total_sale_value: number(row.total_sale_value) })) };
+  if(report.observations!==undefined&&!Array.isArray(report.observations))throw new Error("Observaciones de reporte inválidas");
+  const observations=report.observations?.map(note=>{
+    if(!note||typeof note.observation!=="string"||Array.from(note.observation).length>500||!note.order_number||!Number.isFinite(Date.parse(note.recorded_at)))throw new Error("Observación de cobro inválida");
+    return {...note,amount:number(note.amount)};
+  })??[];
+  return { ...report, observations, summary: { ...report.summary, total: number(report.summary.total), orders: number(report.summary.orders,true), units: number(report.summary.units), cash: method(report.summary.cash), qr: method(report.summary.qr), other: method(report.summary.other) }, filtered: { total: number(report.filtered.total), orders: number(report.filtered.orders,true), units: number(report.filtered.units) }, rows: report.rows.map(row => ({ ...row, quantity: number(row.quantity), unit_price: row.unit_price === null ? null : number(row.unit_price,true), total_sale_value: number(row.total_sale_value) })) };
 }

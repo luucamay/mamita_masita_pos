@@ -50,6 +50,8 @@
     "test:p15": "node --experimental-strip-types --test tests/*.test.ts",
     "test:p15:ui": "playwright test --config playwright.regression.config.ts",
     "test:access:ui": "playwright test --config playwright.regression.config.ts access-sharing.spec.ts admin-interface.spec.ts",
+    "test:observations:db": "node scripts/test-p01-database.mjs observations",
+    "test:observations:ui": "playwright test --config playwright.observations.config.ts",
     "test:navigation:ui": "playwright test --config playwright.navigation.config.ts",
     "test:p15:release": "playwright test --config playwright.release.config.ts",
     "test:cashbox:ui": "playwright test --config playwright.regression.config.ts shift-workflow.spec.ts",

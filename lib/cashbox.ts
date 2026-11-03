@@ -1,5 +1,5 @@
 import {validSalesRange} from "./employee-sales.ts";
-export type CashReceipt = {source_kind:"payment"|"movement";source_id:string;order_id:string;order_number:string;recorded_at:string;method:"cash"|"qr"|"card";amount:number;kind:"initial"|"adjustment";received_by:string;receiver_name:string;purchase_type:"customer"|"employee"};
+export type CashReceipt = {source_kind:"payment"|"movement";source_id:string;order_id:string;order_number:string;recorded_at:string;method:"cash"|"qr"|"card";amount:number;kind:"initial"|"adjustment";received_by:string;receiver_name:string;purchase_type:"customer"|"employee";observation?:string};
 export type CashShift = {
  id:string;cashier_id:string;cashier_name:string;opened_at:string;opening_cash:number;opening_note:string;previous_shift_id:string|null;status:"open"|"awaiting_receipt"|"received";
  closed_at:string|null;closed_by:string|null;closed_by_name:string|null;cash_net:number;qr_net:number;other_net:number;receipt_count:number;counted_cash:number|null;withdrawal:number;cash_left:number|null;difference:number|null;close_note:string;closing_snapshot:CashReceipt[];

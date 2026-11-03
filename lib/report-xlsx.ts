@@ -82,6 +82,22 @@ export async function createSalesReportXlsx(report: SalesReport): Promise<Uint8A
  const detail = sheet("Desglose", [46, 14, 23, 14, 24], true);
  table(detail, "DesgloseVentas", ["Ítem", "Cantidad", "Ingreso neto", "Pago", "Tipo de compra"], report.rows.map(row => [text(row.product_or_service), row.quantity, row.total_sale_value, row.payment_method === "cash" ? "Efectivo" : row.payment_method === "qr" ? "QR" : row.payment_method === "card" ? "Tarjeta" : "Sin registro", row.purchase_type === "employee" ? "Compra de empleado" : "Cliente"]));
  for (const [cell, result] of [["A6", report.filtered.total], ["B6", report.filtered.orders], ["C6", report.filtered.units]] as const) detail.getCell(cell).value = { formula: `'Ventas'!${cell}`, result };
+ if(report.observations?.length){
+  const notes=workbook.addWorksheet("Observaciones",{views:[{state:"frozen",ySplit:5,showGridLines:false}],pageSetup:{paperSize:9,orientation:"landscape",fitToPage:true,fitToWidth:1,fitToHeight:0,printTitlesRow:"1:5"}});
+  notes.columns=[25,24,16,18,25,65].map(width=>({width}));
+  notes.mergeCells("A1:F1");notes.getCell("A1").value="Mamita Masita · Observaciones de cobros";notes.getCell("A1").font={name:"Arial",size:16,bold:true,color:{argb:palette.orange}};notes.getRow(1).height=29;
+  notes.mergeCells("A2:F2");notes.getCell("A2").value=`Reporte ${period} · ${report.range.start_date} al ${lastDay.toISOString().slice(0,10)} · Bolivia`;
+  notes.mergeCells("A3:F3");notes.getCell("A3").value=`Pagos: ${payments[report.filters.payment]}. Compras: ${purchases[report.filters.purchase]}.`;
+  notes.addImage(logo,{tl:{col:5.65,row:0},ext:{width:42,height:42},editAs:"absolute"});
+  const moment=new Intl.DateTimeFormat("es-BO",{timeZone:"America/La_Paz",dateStyle:"short",timeStyle:"short",hourCycle:"h23"});
+  notes.addTable({name:"ObservacionesCobros",ref:"A5",headerRow:true,style:{theme:"TableStyleLight1",showRowStripes:false},columns:["Pedido","Fecha de cobro","Pago","Importe","Cobró","Observación"].map(name=>({name,filterButton:true})),rows:report.observations.map(r=>[text(r.order_number)+(r.purchase_type==="employee"?" · Empleado":""),moment.format(new Date(r.recorded_at)),r.method==="cash"?"Efectivo":r.method==="qr"?"QR":"Otros",r.amount,text(r.receiver_name),text(r.observation??"")])});
+  notes.getRow(5).height=27;
+  notes.eachRow((row,index)=>{
+   row.eachCell(cell=>{cell.font={name:"Arial",size:10,bold:index===5,color:{argb:index===5?"FF7C2D12":palette.ink}};cell.alignment={vertical:"top",wrapText:true};if(index>=5)cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:index===5?palette.header:index%2?"FFFFFFFF":palette.cream}};});
+   if(index>5){row.getCell(4).numFmt=currencyFormat;row.height=Math.max(30,Math.ceil(String(row.getCell(6).value).split("\n").reduce((sum,line)=>sum+Math.max(1,Math.ceil(line.length/60)),0))*14+8);}
+  });
+  notes.pageSetup.printArea=`A1:F${5+report.observations.length}`;
+ }
  for (const ws of [main, detail]) ws.eachRow(row => row.eachCell(cell => {
   if (!cell.font?.name) cell.font = { name: "Arial", size: 10, color: { argb: palette.ink } };
   if (!cell.alignment?.vertical) cell.alignment = { ...cell.alignment, vertical: "middle" };

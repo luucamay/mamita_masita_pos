@@ -1,5 +1,7 @@
 # Desarrollo de mejoras de octubre de 2026
 
+**03/11, observaciones:** nota opcional antes de cobrar mesas, pedidos para llevar, compras de empleados y ajustes. Se conserva por recibo en el cierre y en los reportes/Excel del período. Migración `20261103181519` aplicada; importes e historial anteriores sin cambios. Ver [implementación y guía](OBSERVACIONES_COBROS_2026-11-03.md).
+
 **03/11, menú lateral vacío:** reproducido el fallo de consulta inicial de rol observado en la foto. Corregido con rol inicial verificado en servidor, documento autenticado nuevo tras login y carga/reintento explícitos. 17 comprobaciones de navegador, 51 de lógica y 7 de preparación aprobadas; builds QA/entrega y tipos correctos. Sin cambios de Supabase o contraseñas. Ver [diagnóstico y verificación](MENU_LATERAL_2026-11-03.md).
 
 **03/11, acceso y compartir:** desactivar desde Empleados dispara una comprobación de sesión en tiempo real; cuentas sin acceso vuelven al login, con respaldo periódico y al recuperar la app/conexión. Credenciales incorpora Compartir app por WhatsApp con enlace público e instalación, sin contraseña en el mensaje. Se mantiene el ojo para la contraseña recién creada y no se almacena una copia recuperable. Sin migraciones. Ver [implementación y guía](ACCESO_EN_VIVO_Y_COMPARTIR_APP_2026-11-03.md).
