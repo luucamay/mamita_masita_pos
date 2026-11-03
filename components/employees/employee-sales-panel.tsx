@@ -4,6 +4,7 @@ import type { Employee } from "@/lib/employee-provision";
 import { normalizeEmployeeSales, salesRange, validSalesRange, type EmployeeSales } from "@/lib/employee-sales";
 import { formatOrderDate } from "@/lib/date-time";
 import { CashHistoryPanel } from "@/components/cashbox/cash-history";
+import {useCashboxUpdates} from "@/lib/use-cashbox-updates";
 const field = "mt-1 min-h-11 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-base";
 const button = "min-h-11 rounded-xl border border-[var(--border)] bg-white px-3 text-sm font-semibold disabled:opacity-40";
 const money = (n: number) => new Intl.NumberFormat("es-BO", { style: "currency", currency: "BOB" }).format(n);
@@ -13,7 +14,10 @@ export function EmployeeSalesPanel({ employee }: { employee: Employee }) {
  const [result, setResult] = useState<EmployeeSales | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState("");
  const [start, setStart] = useState(""), [end, setEnd] = useState("");
  const active = useRef<AbortController | null>(null);
- async function load(range?: { start: string; end: string }, page = 0) {
+ const applied=useRef<{start:string;end:string}|undefined>(undefined),currentPage=useRef(0),loaded=useRef(false);
+ const [generation,setGeneration]=useState(0);
+ async function load(range?: { start: string; end: string }, page = 0, background=false) {
+  if(background&&active.current)return;
   if (range && !validSalesRange(range.start, range.end)) return setError("Elige un rango válido de hasta 366 días.");
   active.current?.abort();
   const controller = new AbortController(); active.current = controller;
@@ -24,12 +28,18 @@ export function EmployeeSalesPanel({ employee }: { employee: Employee }) {
    const data = await response.json();
    if (!response.ok) throw new Error(data.error || "No se pudo consultar el historial.");
    const next = normalizeEmployeeSales(data);
-   if (!controller.signal.aborted) { setResult(next); setStart(next.range.start); setEnd(next.range.end); }
+   if (!controller.signal.aborted) {
+    setResult(next);applied.current=range;currentPage.current=next.page;
+    if(!background||!loaded.current||!range&&start===result?.range.start&&end===result?.range.end){setStart(next.range.start);setEnd(next.range.end);}
+    loaded.current=true;
+    if(!background)setGeneration(value=>value+1);
+   }
   } catch (failure) { if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : "No se pudo consultar el historial."); }
-  finally { if (!controller.signal.aborted) setBusy(false); }
+  finally { if(active.current===controller)active.current=null;if (!controller.signal.aborted) setBusy(false); }
  }
  // The panel is mounted afresh for each employee; abort old responses on close.
  useEffect(() => { void load(); return () => active.current?.abort(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+ useCashboxUpdates(()=>load(applied.current,currentPage.current,true),true,true);
  function apply(event: FormEvent) { event.preventDefault(); void load({ start, end }); }
  return <div className="space-y-3" aria-busy={busy}>
   <p className="text-xs text-[var(--muted)]">Pedidos de clientes, por fecha de registro en Bolivia. El cobrado muestra el importe recibido hasta ahora.</p>
@@ -38,9 +48,9 @@ export function EmployeeSalesPanel({ employee }: { employee: Employee }) {
    <label className="min-w-0 flex-1 text-sm">Hasta<input type="date" required min={start || "2000-01-01"} max="2099-12-31" value={end} onChange={e => setEnd(e.target.value)} className={field}/></label>
    <button disabled={busy} className="min-h-11 rounded-xl bg-orange-500 px-4 text-sm font-semibold text-white disabled:opacity-40 min-[380px]:col-span-2 sm:col-span-1">Filtrar</button>
   </form>
-  <div className="flex gap-2">{(["day", "week", "month"] as const).map(preset => <button type="button" key={preset} disabled={busy || !result} onClick={() => result && void load(salesRange(result.range.today, preset))} className={button}>{preset === "day" ? "Hoy" : preset === "week" ? "Esta semana" : "Este mes"}</button>)}</div>
-  {error ? <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}<button type="button" disabled={busy} onClick={() => void load(result?.range)} className="ml-2 min-h-11 font-semibold underline">Reintentar</button></p> : null}
-  {busy ? <p role="status" className="text-sm text-[var(--muted)]">Cargando historial…</p> : null}
+  <div className="flex flex-wrap gap-2">{(["day", "week", "month"] as const).map(preset => <button type="button" key={preset} disabled={busy || !result} onClick={() => result && void load(preset==="day"?undefined:salesRange(result.range.today, preset))} className={button}>{preset === "day" ? "Hoy" : preset === "week" ? "Esta semana" : "Este mes"}</button>)}<button type="button" disabled={busy} onClick={()=>void load(applied.current,currentPage.current)} className={button}>Actualizar</button></div>
+  {error ? <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}<button type="button" disabled={busy} onClick={() => void load(applied.current,currentPage.current)} className="ml-2 min-h-11 font-semibold underline">Reintentar</button></p> : null}
+  {busy ? <p role="status" className="text-sm text-[var(--muted)]">{result?"Actualizando historial…":"Cargando historial…"}</p> : null}
   {result ? <>
    <p className="text-xs text-[var(--muted)]" data-testid="employee-sales-range">{result.range.start.split("-").reverse().join("/")} al {result.range.end.split("-").reverse().join("/")}</p>
    <dl className="grid grid-cols-3 divide-x divide-[var(--border)] rounded-xl border border-[var(--border)] bg-white py-3 text-center">
@@ -56,7 +66,7 @@ export function EmployeeSalesPanel({ employee }: { employee: Employee }) {
     <details className="mt-1"><summary className="inline-flex min-h-11 cursor-pointer items-center text-xs font-semibold text-orange-800">Ver productos</summary><ul className="space-y-1 text-sm">{order.items.map((item, i) => <li key={i}>{item.quantity} × {item.name}</li>)}</ul></details>
    </li>)}</ul>}
    {result.total_count > result.page_size ? <nav aria-label="Páginas del historial del empleado" className="flex items-center justify-between gap-2"><button type="button" disabled={busy || result.page === 0} onClick={() => void load(result.range, result.page - 1)} className={button}>Anterior</button><span className="text-xs">Página {result.page + 1} de {Math.ceil(result.total_count / result.page_size)}</span><button type="button" disabled={busy || (result.page + 1) * result.page_size >= result.total_count} onClick={() => void load(result.range, result.page + 1)} className={button}>Siguiente</button></nav> : null}
-   <CashHistoryPanel employeeId={employee.id} externalRange={result.range} filters={false} heading="Cierres de caja de este empleado"/>
+   <CashHistoryPanel employeeId={employee.id} externalRange={result.range} refreshToken={generation} filters={false} heading="Cierres de caja de este empleado"/>
   </> : null}
  </div>;
 }

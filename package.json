@@ -21,6 +21,7 @@
     "test:p03": "node --experimental-strip-types --test tests/payment.test.ts",
     "test:p04:db": "node scripts/test-p01-database.mjs p04",
     "test:p05": "node --experimental-strip-types --test tests/employees.test.ts",
+    "test:employees:history": "playwright test --config playwright.employee-history.config.ts",
     "test:p05:db": "node scripts/test-p01-database.mjs p05",
     "test:modules": "playwright test --config playwright.modules.config.ts",
     "test:p06": "node --experimental-strip-types --test tests/promotions.test.ts",
