@@ -1,5 +1,6 @@
 import "server-only";
 import { getActiveAccess } from "@/lib/auth";
+import {notifyAccessChange} from "@/lib/access-notification";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, passwordRequestFingerprint } from "@/lib/supabase/admin";
 import { EmployeeError, employeeInput, isUuid, provisionEmployee, type Employee, type AuthIdentity } from "@/lib/employee-provision";
@@ -71,7 +72,9 @@ export async function addEmployee(value: unknown) {
 export async function setEmployeeActive(id: string, active: boolean, updatedAt: string) {
   const { client } = await employeeContext();
   const { data, error } = await client.rpc("admin_set_employee_active", { p_employee_id: id, p_active: active, p_expected_updated_at: updatedAt });
-  rpcFailure(error); return data;
+  rpcFailure(error);
+  await notifyAccessChange(client);
+  return data;
 }
 
 export async function resetEmployeePassword(id: string, value: Record<string, unknown>) {

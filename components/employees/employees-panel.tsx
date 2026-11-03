@@ -15,7 +15,7 @@ const primary = "min-h-11 rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibo
 const secondary = "min-h-11 rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold disabled:opacity-40";
 const cardAction = "min-h-11 rounded-xl border border-[var(--border)] bg-white px-2 py-2 text-sm font-semibold disabled:opacity-40";
 
-export function EmployeesPanel({ initialEmployees, actorId, initialError }: { initialEmployees: Employee[]; actorId: string; initialError?: string }) {
+export function EmployeesPanel({ initialEmployees, actorId, initialError, appOrigin }: { initialEmployees: Employee[]; actorId: string; initialError?: string; appOrigin?:string }) {
   const [employees, setEmployees] = useState(initialEmployees);
   const [ready, setReady] = useState(!initialError);
   const [error, setError] = useState(initialError ?? "");
@@ -117,6 +117,6 @@ export function EmployeesPanel({ initialEmployees, actorId, initialError }: { in
       </article>)}</div>}
     </> : null}
     <Modal open={salesEmployee !== null} title={`Ventas de ${salesEmployee?.full_name || salesEmployee?.email || "empleado"}`} onClose={() => setSalesEmployee(null)} wide>{salesEmployee ? <EmployeeSalesPanel key={salesEmployee.id} employee={salesEmployee}/> : null}</Modal>
-    <Modal open={credentialEmployee !== null} title="Credenciales de acceso" busy={credentialBusy} onClose={() => { if (!credentialBusy) setCredentialEmployee(null); }}>{credentialEmployee ? <CredentialsPanel key={credentialEmployee.id} employee={credentialEmployee} actorId={actorId} initialPassword={knownPasswords[credentialEmployee.id]} onSaved={password => setKnownPasswords(current => ({ ...current, [credentialEmployee.id]: password }))} onBusyChange={setCredentialBusy}/> : null}</Modal>
+    <Modal open={credentialEmployee !== null} title="Credenciales de acceso" busy={credentialBusy} onClose={() => { if (!credentialBusy) setCredentialEmployee(null); }}>{credentialEmployee ? <CredentialsPanel key={credentialEmployee.id} employee={credentialEmployee} actorId={actorId} appOrigin={appOrigin} initialPassword={knownPasswords[credentialEmployee.id]} onSaved={password => setKnownPasswords(current => ({ ...current, [credentialEmployee.id]: password }))} onBusyChange={setCredentialBusy}/> : null}</Modal>
   </div>;
 }

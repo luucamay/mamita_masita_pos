@@ -13,7 +13,8 @@ import {
 } from "@/components/icons";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { createClient } from "@/lib/supabase/client";
-import { canAccessPath, isActiveProfile } from "@/lib/permissions";
+import { canAccessPath } from "@/lib/permissions";
+import {useAccessGuard} from "@/lib/use-access-guard";
 import { CashboxBanner } from "@/components/cashbox/cashbox-banner";
 
 const navItems = [
@@ -39,51 +40,13 @@ const roleMarkers: Record<string, string> = {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [role, setRole] = useState<string | null>(null);
+  const router=useRouter();
+  const {role,ending}=useAccessGuard(pathname!=="/login");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
-
-  useEffect(() => {
-    let mounted = true;
-    const supabase = createClient();
-
-    async function loadRole() {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        if (mounted) setRole(null);
-        return;
-      }
-      const { data } = await supabase
-        .from("profiles")
-        .select("role,active")
-        .eq("id", userData.user.id)
-        .maybeSingle();
-      if (mounted) setRole(isActiveProfile(data) ? data.role : null);
-    }
-
-    void loadRole();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      // loadRole already covers the initial session. Do not repeat its two calls.
-      if (event === "INITIAL_SESSION") return;
-      if (event === "SIGNED_OUT") {
-        if (mounted) setRole(null);
-        return;
-      }
-      setTimeout(() => {
-        if (mounted) void loadRole();
-      }, 0);
-    });
-
-    return () => {
-      mounted = false;
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
 
   if (pathname === "/login") {
     return (
@@ -94,10 +57,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
 
+  if(ending)return <main className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4"><p role="status">Cerrando sesión…</p></main>;
+
   async function handleLogout() {
     await createClient().auth.signOut();
-    router.replace("/login");
-    router.refresh();
+    window.location.replace("/login");
   }
 
   return (

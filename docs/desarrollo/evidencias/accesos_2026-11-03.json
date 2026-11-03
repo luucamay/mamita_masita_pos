@@ -1,0 +1,35 @@
+{
+  "date": "2026-11-03",
+  "branch": "desarrollo/mejoras-octubre-2026",
+  "scope": ["live access deactivation response", "WhatsApp application link", "preserved ephemeral password display"],
+  "tests": {
+    "logic": {"passed": 51, "failed": 0},
+    "browserUniqueScenariosCovered": 14,
+    "accessAndAdminRun": {"passed": 12, "failed": 1, "remainingIssue": "Test clock installed after intervals were created"},
+    "correctedTimerTestsRepeated": {"passed": 4, "failed": 0},
+    "productionLikeBuildBrowser": {"passed": 1, "failed": 0},
+    "realSupabaseTemporaryBroadcastDelivered": true,
+    "typeCheck": "passed",
+    "qaBuild": "passed",
+    "releaseBuild": "passed",
+    "secretsScan": "zero matches",
+    "viewports": [390, 1365]
+  },
+  "dataChanges": {
+    "schemaMigrations": 0,
+    "businessWrites": 0,
+    "employeeProfileOrPasswordWrites": 0,
+    "qaAuthSessionsOnly": true,
+    "existingInactiveQaStaffPreserved": true
+  },
+  "behavior": {
+    "notificationContainsEmployeeData": false,
+    "notificationAloneAuthorizesOrLogsOut": false,
+    "serverVerifiesCallerAndActiveProfile": true,
+    "fallbackVisibleOnlineSeconds": 15,
+    "offlineOrSuspendedDeviceChecksOnResume": true,
+    "whatsAppOpensDraftOnly": true,
+    "whatsAppContainsPassword": false,
+    "recoverablePasswordsAdded": false
+  }
+}

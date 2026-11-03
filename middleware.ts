@@ -48,7 +48,10 @@ export async function middleware(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const isLoginPage = request.nextUrl.pathname === "/login";
 
-  if (!data?.claims && !isLoginPage) {
+  // This endpoint distinguishes an actual denial from a temporary Auth outage.
+  // Its own fresh getUser/profile checks must decide; a failed claims read alone
+  // must not make the live guard log out a valid employee.
+  if (!data?.claims && !isLoginPage && request.nextUrl.pathname !== "/api/auth/access") {
     if (request.nextUrl.pathname.startsWith("/api/")) {
       const denied = NextResponse.json({ error: "Sesión no disponible", redirectTo: "/login?reason=inactive" }, { status: 401, headers: { "Cache-Control": "private, no-store" } });
       for (const cookie of response.cookies.getAll()) denied.cookies.set(cookie);
