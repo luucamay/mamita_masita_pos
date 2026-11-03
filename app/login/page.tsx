@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { isActiveProfile, safeLoginDestination } from "@/lib/permissions";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -39,10 +37,9 @@ export default function LoginPage() {
       return;
     }
     const next = new URL(window.location.href).searchParams.get("next");
-    router.replace(safeLoginDestination(next, profile));
-    // replace already fetches the protected route with the new session cookie.
-    // Refreshing the old /login tree concurrently can redirect to the role's
-    // default home and cancel the requested destination or its first transition.
+    // Start a fresh authenticated document so the server seeds the navigation
+    // role too; do not retain the anonymous layout from the login page.
+    window.location.replace(safeLoginDestination(next, profile));
   }
 
   return (
