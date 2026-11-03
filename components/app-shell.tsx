@@ -13,7 +13,7 @@ import {
 } from "@/components/icons";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { createClient } from "@/lib/supabase/client";
-import { canAccessPath } from "@/lib/permissions";
+import { canAccessPath,type UserRole } from "@/lib/permissions";
 import {useAccessGuard} from "@/lib/use-access-guard";
 import { CashboxBanner } from "@/components/cashbox/cashbox-banner";
 
@@ -38,10 +38,10 @@ const roleMarkers: Record<string, string> = {
   cook: "c",
 };
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children,initialRole=null }: { children: ReactNode;initialRole?:UserRole|null }) {
   const pathname = usePathname();
   const router=useRouter();
-  const {role,ending}=useAccessGuard(pathname!=="/login");
+  const {role,ending,unavailable,checking,retry}=useAccessGuard(pathname!=="/login",initialRole);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -94,8 +94,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             />
           )}
         </div>
-        <nav className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto">
-          {navItems
+        <nav aria-label="Navegación principal" className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto">
+          {role===null?<div className="space-y-2 px-1 text-center text-[11px] leading-4 text-white/90"><p role="status">{unavailable?"No se pudo cargar el menú.":"Cargando menú…"}</p>{unavailable?<button type="button" onClick={retry} disabled={checking} className="min-h-11 w-full rounded-lg bg-white/15 px-1 font-semibold text-white disabled:opacity-50">{checking?"Cargando…":"Reintentar"}</button>:null}</div>:navItems
             .map(item => item.href === "/" && role === "admin" ? { ...item, href: "/menu" } : item)
             .filter((item) => canAccessPath({ role, active: true }, item.href))
             .map((item) => {

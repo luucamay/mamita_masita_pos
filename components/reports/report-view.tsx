@@ -3,6 +3,7 @@ import { reportQuery, reportRange, reportDateLabel, validReportDate, type Report
 import { EmployeePurchaseBadge } from "@/components/orders/employee-purchase-badge";
 import { ReportSummary } from "./report-summary";
 import { ProductSalesTable } from "./product-sales-table";
+import { ReceiptList } from "@/components/cashbox/cash-history";
 
 const periods = [{ value: "daily", label: "Diario" }, { value: "weekly", label: "Semanal" }, { value: "monthly", label: "Mensual" }] as const;
 const money = (value: number) => new Intl.NumberFormat("es-BO", { style: "currency", currency: "BOB" }).format(value);
@@ -37,6 +38,7 @@ export function ReportView({ report, filters, error = null }: { report: SalesRep
         <a href={`/historial/export?${reportQuery(active)}`} download className="inline-flex min-h-11 items-center rounded-xl border border-orange-200 bg-orange-50 px-4 text-sm font-semibold text-orange-800">Exportar Excel</a>
       </div>
       <ProductSalesTable rows={report.rows}/>
+      {report.observations?.length?<details open className="rounded-xl border border-[var(--border)] bg-white px-3"><summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold text-orange-800">Observaciones de cobros ({report.observations.length})</summary><ReceiptList receipts={report.observations}/></details>:null}
       <details className="space-y-2"><summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold text-orange-800">Ver desglose por pago y tipo de compra</summary>
       <p className="text-sm text-[var(--muted)]">El desglose conserva medio de pago y tipo de compra. “Varios” indica distintos precios históricos.</p>
       <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-white"><div className="overflow-x-auto" role="region" aria-label="Productos vendidos" tabIndex={0}>

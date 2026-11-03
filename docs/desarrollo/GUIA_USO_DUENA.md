@@ -76,6 +76,12 @@ Historial inicia en hoy. Diario, Semanal y Mensual cambian el período; el selec
 
 Exportar Excel descarga el período y filtros seleccionados. Ventas contiene Ítem/Cantidad/Ingreso total; Desglose separa medio de pago y tipo de compra. Se usa fecha de cobro/ajuste en Bolivia, semana de lunes a domingo y mes calendario. Las devoluciones reducen el ingreso; el efectivo inicial y los retiros de caja no son ventas.
 
+## Observaciones de cobros y turnos
+
+Antes de confirmar un cobro, Atención/Administración puede escribir una observación opcional. Por ejemplo: «Producto sustituido con autorización de la encargada». Aparece junto al movimiento en caja, en el cierre y en Historial del período. El Excel añade Observaciones cuando existen notas.
+
+La observación general al cerrar caja sirve para incidentes del turno, incluidos los detectados después del pago. Escribir una nota no corrige el importe de una venta ni confirma un QR que no se recibió.
+
 ## 7. Revisión rápida con la dueña
 
 1. Verifica cuentas y roles; entrega cada acceso en privado.

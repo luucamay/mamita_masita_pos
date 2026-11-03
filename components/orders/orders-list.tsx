@@ -15,6 +15,7 @@ import { EmployeePurchaseBadge } from "@/components/orders/employee-purchase-bad
 import { PurchaseActions } from "@/components/employee-purchases/purchase-actions";
 import type { EmployeePurchaseOrder } from "@/lib/employee-purchases";
 import { OrderTimers } from "./order-timers";
+import { PaymentObservation } from "./payment-observation";
 
 type PaymentMethod = "cash" | "qr" | "card";
 
@@ -45,6 +46,7 @@ function escapeHtml(value: string) {
 
 export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSelected, selectionResolvedFor, onSelectionChange }: { orders: OpenOrder[]; closed?: boolean; testCatalog?: { id: string; name: string; price: number }[]; nowMs?:number; liveSelected?:OpenOrder|null; selectionResolvedFor?:string|null; onSelectionChange?:(id:string|null)=>void }) {
   const router = useRouter();
+  const [paymentObservation,setPaymentObservation]=useState("");
   const [displayOrders, setDisplayOrders] = useState(orders);
   const [editing, setEditing] = useState(false);
   const detailRequest = useRef(0);
@@ -52,7 +54,6 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
   const selectedId = useRef<string|null>(null);
   useEffect(() => setDisplayOrders(orders), [orders]);
   const [workingId, setWorkingId] = useState<string | null>(null);
-  const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<OpenOrder | null>(null);
   const [detailItems, setDetailItems] = useState<OrderDetailItem[]>([]);
@@ -82,6 +83,9 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
   }, [selectedOrder]);
 
   async function showDetails(order: OpenOrder) {
+    setError(null);
+    setPaymentObservation("");
+    setSelectedPaymentMethod(null);
     const requestId = ++detailRequest.current;
     selectionEpoch.current++;selectedId.current=order.id;
     setEditing(false);
@@ -155,10 +159,12 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
       return;
     }
 
-    const { error: paymentError } = await supabase.rpc("checkout_order", {
+    const observation=paymentObservation.trim();
+    const { error: paymentError } = await supabase.rpc(observation?"checkout_order_with_observation":"checkout_order", {
       p_order_id: orderId,
       p_payment_method: method,
       p_received_by: userData.user.id,
+      ...(observation?{p_observation:observation}:{}),
     });
     if (paymentError) {
       setError(paymentError.message);
@@ -166,7 +172,6 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
       return;
     }
 
-    setPaymentOrderId(null);
     setSelectedPaymentMethod(null);
     // The refreshed closed list reads the actual paid_at/method from the server.
     closeDetails();
@@ -236,8 +241,8 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
 
   return (
     <div className="grid items-start gap-2 md:grid-cols-2 xl:grid-cols-3">
-      {error ? (
-        <p className="col-span-full rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+      {error && !selectedOrder ? (
+        <p role="alert" className="col-span-full rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
       ) : null}
       {displayOrders.map((order) => {
         const delivered = order.status === "entregado";
@@ -317,29 +322,12 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
                   >
                     {workingId === order.id ? "Guardando..." : order.payment_methods?.length?"Entregar y archivar":"Entregado"}
                    </button>
-                  ) : !closed && paymentOrderId === order.id ? (
-                   <div className="flex flex-wrap justify-end gap-2">
-                     {(["cash", "qr"] as PaymentMethod[]).map((method) => (
-                      <button
-                        key={method}
-                       type="button"
-                       disabled={workingId === order.id}
-                       onClick={(event) => {
-                         event.stopPropagation();
-                         registerPayment(order.id, method);
-                       }}
-                        className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold hover:bg-gray-50 disabled:opacity-60"
-                      >
-                         {paymentLabels[method]}
-                      </button>
-                    ))}
-                  </div>
                   ) : !closed ? (
                    <button
                      type="button"
                      onClick={(event) => {
                        event.stopPropagation();
-                       setPaymentOrderId(order.id);
+                       void showDetails(order);
                      }}
                      className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold hover:bg-gray-50"
                    >
@@ -396,6 +384,7 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
               </div>
             </div>
 
+            {error?<p role="alert" className="my-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>:null}
             <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 rounded-lg bg-orange-50 px-3 py-2 text-xs [&_p]:mt-0">
               <div>
                 <p className="text-[var(--muted)]">Mesa</p>
@@ -487,6 +476,7 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
                           ))}
                         </div>
                       </div>
+                      <PaymentObservation value={paymentObservation} onChange={setPaymentObservation} disabled={workingId===selectedOrder.id}/>
                       <button
                         type="button"
                         disabled={!selectedPaymentMethod || workingId === selectedOrder.id}

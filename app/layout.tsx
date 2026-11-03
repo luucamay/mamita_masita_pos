@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/app-shell";
+import {getActiveAccess} from "@/lib/auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,11 +21,14 @@ export const viewport: Viewport = {
   themeColor: "#232323",
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // The same request-scoped access read is reused by protected pages. Navigation
+  // must not start empty while a second browser request verifies the same role.
+  const access=await getActiveAccess().catch(()=>null);
   return (
     <html lang="es">
       <body>
-        <AppShell>{children}</AppShell>
+        <AppShell initialRole={access?.profile.role??null}>{children}</AppShell>
       </body>
     </html>
   );

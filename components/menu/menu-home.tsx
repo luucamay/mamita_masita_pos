@@ -15,6 +15,7 @@ import { priceOrder } from "@/lib/money";
 import { discountLabel, type PricingContext } from "@/lib/promotions";
 import { usePricingContext } from "@/lib/use-pricing-context";
 import { DiscountBadge } from "@/components/orders/discount-badge";
+import { PaymentObservation } from "@/components/orders/payment-observation";
 
 type MenuHomeProps = {
   categories: Category[];
@@ -53,6 +54,7 @@ export function MenuHome({ categories, items, loadError, pricing = null, pricing
   const [panelOpen, setPanelOpen] = useState(false);
   const [customTable, setCustomTable] = useState(false);
   const [paymentMethod,setPaymentMethod]=useState<"cash"|"qr"|null>(null);
+  const [paymentObservation,setPaymentObservation]=useState("");
   const placement=useRef<{payload:string;id:string}|null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -153,6 +155,7 @@ export function MenuHome({ categories, items, loadError, pricing = null, pricing
 
   function resetOrder() {
     setLines([]);setCustomTable(false);setPaymentMethod(null);placement.current=null;
+    setPaymentObservation("");
     setTableNumber("");
     setCustomerName("");
     setPanelOpen(false);
@@ -183,6 +186,7 @@ export function MenuHome({ categories, items, loadError, pricing = null, pricing
       }
 
       const args={
+          ...(tableNumber==="Para llevar"&&paymentObservation.trim()?{p_observation:paymentObservation.trim()}:{}),
           p_service:tableNumber==="Para llevar"?"takeaway":"table",
           p_method:tableNumber==="Para llevar"?paymentMethod:null,
           p_table_number: tableNumber.trim(),
@@ -197,7 +201,7 @@ export function MenuHome({ categories, items, loadError, pricing = null, pricing
           })),
       };
       const payload=JSON.stringify(args);if(placement.current?.payload!==payload)placement.current={payload,id:crypto.randomUUID()};
-      const {data:createdOrder,error:createError}=await supabase.rpc("place_customer_order",{...args,p_request_id:placement.current.id});
+      const {data:createdOrder,error:createError}=await supabase.rpc("p_observation" in args?"place_customer_order_with_observation":"place_customer_order",{...args,p_request_id:placement.current.id});
       if (createError) {
         if (createError.code === "40001") {
           await refreshQuote(); router.refresh();
@@ -255,6 +259,7 @@ export function MenuHome({ categories, items, loadError, pricing = null, pricing
           <div ref={linesRef} className="flex-1 overflow-y-auto px-3 py-2">
             <fieldset ref={tableRef} className="mb-2"><legend className="mb-1 text-xs font-medium text-[var(--muted)]">Mesa</legend><div data-testid="table-shortcuts" className="grid grid-cols-[repeat(6,minmax(0,1fr))_minmax(0,2.5fr)_minmax(0,1.5fr)] gap-1">{["1","2","3","4","5","6","Para llevar"].map(table=><button key={table} type="button" aria-pressed={!customTable&&tableNumber===table} onClick={()=>{setCustomTable(false);setTableNumber(table);}} className={`min-h-11 min-w-0 whitespace-nowrap rounded-lg border px-0.5 font-semibold ${table==="Para llevar"?"text-[11px]":"text-sm"} ${!customTable&&tableNumber===table?"border-orange-500 bg-orange-500 text-white":"border-[var(--border)] bg-white"}`}>{table}</button>)}<button type="button" aria-pressed={customTable} onClick={()=>{setCustomTable(true);setTableNumber("");}} className={`min-h-11 min-w-0 whitespace-nowrap rounded-lg border px-0.5 text-xs ${customTable?"border-orange-500 bg-orange-50":"border-[var(--border)]"}`}>Otra</button></div>{customTable?<input aria-label="Nro. de mesa" autoFocus value={tableNumber} onChange={event=>setTableNumber(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-[var(--border)] px-3 text-base outline-none focus:ring-2 focus:ring-orange-200" placeholder="Mesa"/>:null}</fieldset>
             <label className="mb-2 block"><span className="sr-only">Nombre del cliente (opcional)</span><input value={customerName} onChange={event=>setCustomerName(event.target.value)} placeholder="Cliente (opcional)" className="min-h-11 w-full rounded-lg border border-[var(--border)] px-3 text-base outline-none focus:ring-2 focus:ring-orange-200"/></label>
+            {tableNumber==="Para llevar"?<div className="mb-2"><PaymentObservation value={paymentObservation} onChange={setPaymentObservation} disabled={saving}/></div>:null}
             <div className="divide-y divide-[var(--border)]">{!lines.length?<p className="py-6 text-center text-sm text-[var(--muted)]">Pedido vacío</p>:lines.map(line=><div key={line.menuItemId} className="py-1"><div className="flex items-center justify-between gap-2"><p className="min-w-0 break-words text-sm font-medium">{line.name}</p><button type="button" aria-label={`Quitar ${line.name}`} onClick={()=>removeLine(line.menuItemId)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-red-50"><TrashIcon className="h-4 w-4"/></button></div><div className="flex items-center justify-between gap-2"><div className="flex items-center gap-1"><button type="button" aria-label={`Disminuir ${line.name} del pedido`} onClick={()=>updateQuantity(line.menuItemId,-1)} className="flex h-11 w-11 items-center justify-center rounded-lg bg-stone-100"><MinusIcon className="h-4 w-4"/></button><span className="min-w-6 text-center text-sm font-semibold">{line.quantity}</span><button type="button" aria-label={`Aumentar ${line.name} del pedido`} onClick={()=>updateQuantity(line.menuItemId,1)} className="flex h-11 w-11 items-center justify-center rounded-lg bg-orange-100 text-orange-800"><PlusIcon className="h-4 w-4"/></button></div><p className="text-sm font-semibold tabular-nums">{formatMoney((priced.lines.find(item=>item.id===line.menuItemId)?.netCents??0)/100)}</p></div></div>)}</div>
           </div>
           <div className="shrink-0 space-y-2 border-t border-[var(--border)] px-3 py-2">
