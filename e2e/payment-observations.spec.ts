@@ -1,9 +1,10 @@
 import {test,expect,type Page} from "@playwright/test";
+import {qaScheduledCashContext} from "../lib/qa-cashbox-fixture";
 import {isReadOnlyTestRequest} from "./safe-requests";
 import {qaOrderId,qaOrderSnapshot} from "../lib/qa-order-fixture";
 import {qaEmployeePurchase} from "../lib/qa-purchase-fixture";
 async function login(page:Page,next:string){await page.goto('/login');await page.getByLabel('Correo electrónico').fill(process.env.E2E_ADMIN_EMAIL!);await page.getByLabel('Contraseña').fill(process.env.E2E_ADMIN_PASSWORD!);await page.getByRole('button',{name:'Ingresar',exact:true}).click();await expect(page).not.toHaveURL(/\/login/);const ready=page.waitForResponse(response=>response.url().endsWith('/api/auth/access')&&response.status()===200);await page.goto(next);await ready;}
-test.beforeEach(async({page})=>{await page.route('**/rest/v1/**',route=>isReadOnlyTestRequest(route.request())?route.continue():route.abort());});
+test.beforeEach(async({page})=>{await page.route('**/rest/v1/**',route=>isReadOnlyTestRequest(route.request())?route.continue():route.abort());await page.route('**/rest/v1/rpc/get_cashbox_context',route=>route.fulfill({json:qaScheduledCashContext()}));});
 
 test('Table pay always opens the optional note before confirming; retry keeps the same observation',async({page})=>{
  const attempts:unknown[]=[];

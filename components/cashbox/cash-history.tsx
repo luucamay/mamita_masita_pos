@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useRef,useState,type FormEvent} from "react";
+import {shiftLabel,shiftHours} from "@/lib/cash-schedule";
 import {createClient} from "@/lib/supabase/client";
 import {normalizeCashHistory,type CashHistory,type CashShift} from "@/lib/cashbox";
 import {salesRange,validSalesRange} from "@/lib/employee-sales";
@@ -8,7 +9,7 @@ import {useCashboxUpdates} from "@/lib/use-cashbox-updates";
 export const cashMoney=(n:number|string)=>new Intl.NumberFormat("es-BO",{style:"currency",currency:"BOB"}).format(Number(n));
 export function CashShiftCard({shift:s,showName=true}:{shift:CashShift;showName?:boolean}){
  return <article className="space-y-2 rounded-xl border border-[var(--border)] bg-white p-3" aria-label={`Cierre de ${s.cashier_name}`}>
-  <header className="flex flex-wrap justify-between gap-2"><div>{showName?<h3 className="text-sm font-semibold">{s.cashier_name}</h3>:null}<p className="text-xs text-[var(--muted)]">{s.closed_at?formatOrderDate(s.closed_at):"Turno abierto"}</p></div><span className={`rounded-full px-2 py-1 text-xs font-semibold ${s.status==="awaiting_receipt"?"bg-orange-50 text-orange-900":"bg-emerald-50 text-emerald-900"}`}>{s.status==="awaiting_receipt"?"Por recibir":"Recibida"}</span></header>
+  <header className="flex flex-wrap justify-between gap-2"><div>{showName?<h3 className="text-sm font-semibold">{s.cashier_name}</h3>:null}<p className="text-xs font-medium text-orange-800">{shiftLabel(s)} {shiftHours(s)}</p><p className="text-xs text-[var(--muted)]">{s.closed_at?formatOrderDate(s.closed_at):"Turno abierto"}</p></div><span className={`rounded-full px-2 py-1 text-xs font-semibold ${s.status==="awaiting_receipt"?"bg-orange-50 text-orange-900":"bg-emerald-50 text-emerald-900"}`}>{s.status==="awaiting_receipt"?"Por recibir":"Recibida"}</span></header>
   <dl className="grid grid-cols-3 gap-2 text-xs"><div><dt className="text-[var(--muted)]">Efectivo vendido</dt><dd className="mt-1 font-semibold tabular-nums">{cashMoney(s.cash_net)}</dd></div><div><dt className="text-[var(--muted)]">QR</dt><dd className="mt-1 font-semibold tabular-nums">{cashMoney(s.qr_net)}</dd></div><div><dt className="text-[var(--muted)]">Dejó en caja</dt><dd className="mt-1 font-semibold tabular-nums text-orange-800">{cashMoney(s.cash_left??0)}</dd></div></dl>
   {s.difference!==0?<p className="text-xs font-medium text-red-800">Diferencia al cerrar: {cashMoney(s.difference??0)}</p>:<p className="text-xs text-emerald-800">Conteo de cierre cuadrado</p>}
   {s.received_at?<p className={`text-xs ${s.receipt_difference?"text-red-800":"text-[var(--muted)]"}`}>Recibió {s.received_by_name||"el siguiente cajero"}: {cashMoney(s.received_cash??0)} · {formatOrderDate(s.received_at)}{s.receipt_difference?` · Diferencia: ${cashMoney(s.receipt_difference)}`:""}</p>:null}

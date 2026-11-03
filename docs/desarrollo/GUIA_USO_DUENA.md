@@ -1,6 +1,6 @@
 # Guía de uso — Mamita Masita
 
-Versión de entrega: 30/10/2026. Cada persona usa su propia cuenta. No se necesita Google ni un correo personal para crear accesos internos.
+Actualizada: 03/11/2026. Cada persona usa su propia cuenta. No se necesita Google ni un correo personal para crear accesos internos.
 
 ## Antes de empezar
 
@@ -46,7 +46,9 @@ Imprimir abre un ticket mediante el navegador. No conecta una impresora automát
 
 La caja es compartida y tiene un responsable por turno. Los cobros hechos por otras cuentas autorizadas durante ese turno también forman parte de la misma caja; cada movimiento identifica quién cobró.
 
-**Primera apertura:** cuando todo el equipo vaya a usar esta versión, entra en Caja, cuenta el efectivo físico para cambio y confirma Abrir caja. Esa primera apertura activa el control de turnos. Las ventas anteriores no se agregan a ese turno.
+**Horarios:** Mañana 10:00–14:00 y Tarde 14:00–21:30, hora de Bolivia. Cinco minutos antes aparece un recordatorio dentro de la app, con opción de posponerlo. Al vencer el turno no se pueden registrar nuevos pedidos de clientes ni cobros en esa caja hasta completar el cambio.
+
+**Apertura:** antes de registrar pedidos o cobrar, el responsable entra en Caja y turnos, cuenta el efectivo para cambio y confirma Abrir caja. El sistema asigna el horario vigente. La apertura y el cierre son manuales. Dos cuentas pueden trabajar simultáneamente en la caja compartida; no deben abrir una caja por teléfono.
 
 **Al salir:** Caja → Cerrar y entregar caja. Cuenta todo el efectivo antes de retirar dinero. La pantalla compara inicial + cobros netos en efectivo con lo contado. QR se muestra aparte. Puedes registrar un retiro; indica el motivo si hay retiro o diferencia y confirma el conteo.
 

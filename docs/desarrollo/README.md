@@ -1,5 +1,7 @@
 # Desarrollo de mejoras de octubre de 2026
 
+**03/11, horarios y reinicio:** mañana 10:00–14:00 y tarde 14:00–21:30 de Bolivia. Apertura obligatoria, recordatorio cinco minutos antes, cierre/recepción manuales y bloqueo de caja vencida en Supabase. Dos cuentas pueden cobrar en la misma caja. Migración `20261103212027` aplicada; retiradas las cinco pruebas nuevas y los dos turnos, con respaldo e historial anterior conservado. 87 pruebas SQL, 55 de lógica y 10 de navegador aprobadas. Ver [implementación y guía](HORARIOS_CAJA_2026-11-03.md).
+
 **03/11, observaciones:** nota opcional antes de cobrar mesas, pedidos para llevar, compras de empleados y ajustes. Se conserva por recibo en el cierre y en los reportes/Excel del período. Migración `20261103181519` aplicada; importes e historial anteriores sin cambios. Ver [implementación y guía](OBSERVACIONES_COBROS_2026-11-03.md).
 
 **03/11, menú lateral vacío:** reproducido el fallo de consulta inicial de rol observado en la foto. Corregido con rol inicial verificado en servidor, documento autenticado nuevo tras login y carga/reintento explícitos. 17 comprobaciones de navegador, 51 de lógica y 7 de preparación aprobadas; builds QA/entrega y tipos correctos. Sin cambios de Supabase o contraseñas. Ver [diagnóstico y verificación](MENU_LATERAL_2026-11-03.md).
