@@ -1,11 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { employeeInput, provisionEmployee, type EmployeeInput, type Provision, type AuthIdentity } from "../lib/employee-provision.ts";
+import { employeeInput, provisionEmployee, isUuid, type EmployeeInput, type Provision, type AuthIdentity } from "../lib/employee-provision.ts";
 
 const input: EmployeeInput = { requestId: "10000000-0000-4000-8000-000000000001", email: "new@example.test", fullName: "Empleado QA", role: "staff", password: "Synthetic12345" };
 const reservation: Provision = { request_id: input.requestId, email: input.email, full_name: input.fullName, role: input.role, actor_id: "admin", completed: false, auth_user_id: null };
 const identity: AuthIdentity = { id: "user", email: input.email, app_metadata: { mamita_employee_request: input.requestId } };
 const profile = { id: "user", full_name: input.fullName, role: input.role, active: true, updated_at: "2026-10-29T12:00:00Z" };
+
+test("Employee identifiers accept existing PostgreSQL UUIDs without requiring version/variant bits",()=>{
+ for(const id of ["11111111-1111-1111-1111-111111111111","22222222-2222-2222-2222-222222222222",input.requestId,"AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"])assert.equal(isUuid(id),true);
+ for(const id of [null,123,"", "22222222-2222-2222-2222-22222222222", "g2222222-2222-2222-2222-222222222222", "22222222-2222-2222-2222-222222222222/extra", "' OR true--"])assert.equal(isUuid(id),false);
+});
 
 test("P05 validates input, normalizes email, and rejects invalid roles, IDs and weak passwords", () => {
   assert.equal(employeeInput({ ...input, email: " New@Example.Test " }).email, input.email);

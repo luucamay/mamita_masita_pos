@@ -8,7 +8,9 @@ export class EmployeeError extends Error {
   status: number;
   constructor(status: number, message: string) { super(message); this.status = status; }
 }
-export const isUuid = (value: unknown): value is string => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+// Existing PostgreSQL identities include manually assigned UUIDs. Validate the
+// canonical representation; version/variant bits are not an authorization rule.
+export const isUuid = (value: unknown): value is string => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 export function employeeInput(value: unknown): EmployeeInput {
   if (!value || typeof value !== "object") throw new EmployeeError(400, "Datos inválidos.");
   const v = value as Record<string, unknown>;
