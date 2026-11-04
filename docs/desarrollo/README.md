@@ -1,5 +1,7 @@
 # Desarrollo de mejoras de octubre de 2026
 
+**04/11, caja diaria:** resumen Mañana/Tarde con Efectivo, QR y Total del día; efectivo inicial y esperado separados de las ventas. Cierre y entrega destacan ambos medios y total del turno. Consulta de solo lectura aplicada en Supabase, sin cambiar movimientos ni saldos históricos. Ver [implementación y guía](CAJA_DIARIA_EFECTIVO_QR_2026-11-04.md).
+
 **03/11, retiro de QA:** eliminadas las seis identidades de prueba de Supabase Auth, sesiones revocadas y credenciales locales retiradas. Los perfiles quedan inactivos para conservar la auditoría; el directorio excluye identidades eliminadas. Las seis cuentas reales permanecen intactas. Ver [retiro y verificación](RETIRO_CUENTAS_QA_2026-11-03.md).
 
 **03/11, historial de empleados:** corregido el rechazo de identificadores antiguos de Staff User y Admin User. El historial incorpora actualización automática y botón Actualizar, conservando el período elegido. Sin migración ni cambios en ventas. Ver [diagnóstico y verificación](FIX_HISTORIAL_EMPLEADOS_2026-11-03.md).
