@@ -48,13 +48,15 @@ La caja es compartida y tiene un responsable por turno. Los cobros hechos por ot
 
 **Horarios:** Mañana 10:00–14:00 y Tarde 14:00–21:30, hora de Bolivia. Cinco minutos antes aparece un recordatorio dentro de la app, con opción de posponerlo. Al vencer el turno no se pueden registrar nuevos pedidos de clientes ni cobros en esa caja hasta completar el cambio.
 
-**Apertura:** antes de registrar pedidos o cobrar, el responsable entra en Caja y turnos, cuenta el efectivo para cambio y confirma Abrir caja. El sistema asigna el horario vigente. La apertura y el cierre son manuales. Dos cuentas pueden trabajar simultáneamente en la caja compartida; no deben abrir una caja por teléfono.
+**Apertura del día:** antes de registrar pedidos o cobrar, el responsable entra en Caja y turnos y confirma Abrir caja con saldo inicial obligatorio Bs 0. No se recibe el saldo de ayer. El sistema asigna el horario vigente. La apertura y el cierre son manuales. Dos cuentas pueden trabajar simultáneamente en la caja compartida; no deben abrir una caja por teléfono.
 
 **Al salir:** Caja → Cerrar y entregar caja. Cuenta todo el efectivo antes de retirar dinero. La pantalla compara inicial + cobros netos en efectivo con lo contado. QR se muestra aparte. Puedes registrar un retiro; indica el motivo si hay retiro o diferencia y confirma el conteo.
 
-Ejemplo: abres con Bs 100, cobras Bs 50 en efectivo y Bs 20 en QR. El efectivo esperado es Bs 150. Si cuentas Bs 150 y retiras Bs 50, dejas Bs 100. QR no se suma al efectivo físico.
+Ejemplo: abres el día con Bs 0, cobras Bs 50 en efectivo y Bs 20 en QR. El efectivo esperado es Bs 50. Si cierras la mañana sin retiro, el turno de tarde recibe esos Bs 50 del mismo día. QR no se suma al efectivo físico.
 
-**Quien entra:** ingresa con su propia cuenta, elige Recibir caja e iniciar turno y cuenta lo recibido. Si cuenta Bs 95 cuando se declararon Bs 100, escribe la observación; queda registrada una diferencia de Bs 5 y el nuevo turno comienza con Bs 95.
+**Quien entra a la tarde:** ingresa con su propia cuenta, elige Recibir caja e iniciar turno y cuenta lo recibido del turno de mañana de hoy. Si cuenta Bs 95 cuando se declararon Bs 100, escribe la observación; queda registrada una diferencia de Bs 5 y el nuevo turno comienza con Bs 95.
+
+**Último turno:** al confirmar el cierre de tarde termina la jornada y aparece Día cerrado. Los importes quedan guardados en el historial y no se reciben al día siguiente. La nueva jornada comienza con saldo Bs 0, independientemente del saldo final archivado o del retiro físico registrado. Un día cerrado no se reabre con otra cuenta.
 
 Mientras la caja esté entregada y pendiente de recepción no se pueden confirmar nuevos cobros o devoluciones. Recibir abre el siguiente turno en la misma operación. Si cambia un cobro mientras estás contando, la aplicación pide actualizar el corte y revisarlo antes de cerrar.
 
@@ -90,5 +92,5 @@ La observación general al cerrar caja sirve para incidentes del turno, incluido
 2. Consulta hoy, una semana y un mes con ventas y descarga sus Excel.
 3. Revisa el menú y precios sin crear compras ficticias.
 4. Comprueba Pedidos/Cocina/Café en dos dispositivos conectados.
-5. Al empezar la operación real, abre caja con el importe físico contado; al cambio de turno, cierra y recibe con cuentas diferentes.
+5. Abre el día con saldo Bs 0; al pasar de mañana a tarde, cierra y recibe con cuentas diferentes. Al cerrar la tarde, verifica Día cerrado y que la jornada siguiente abra con Bs 0.
 6. En Android e iOS reales, verifica instalación, inicio de sesión, sonido y uso en pantalla completa. Su comportamiento puede depender de permisos del dispositivo.

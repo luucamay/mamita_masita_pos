@@ -1,5 +1,7 @@
 # Desarrollo de mejoras de octubre de 2026
 
+**05/11, regla definitiva de caja:** cada día abre obligatoriamente con saldo Bs 0; solo se recibe saldo entre turnos del mismo día. El cierre de tarde archiva la jornada y no pasa dinero a mañana. Regla aplicada en Supabase y corregido el arrastre de Bs 460 en la apertura de hoy, con cobros conservados. Sustituye las explicaciones anteriores de arrastre nocturno. Ver [implementación y verificación](CIERRE_DIARIO_SALDO_CERO_2026-11-05.md).
+
 **04/11, caja diaria:** resumen Mañana/Tarde con Efectivo, QR y Total del día; efectivo inicial y esperado separados de las ventas. Cierre y entrega destacan ambos medios y total del turno. Consulta de solo lectura aplicada en Supabase, sin cambiar movimientos ni saldos históricos. Ver [implementación y guía](CAJA_DIARIA_EFECTIVO_QR_2026-11-04.md).
 
 **03/11, retiro de QA:** eliminadas las seis identidades de prueba de Supabase Auth, sesiones revocadas y credenciales locales retiradas. Los perfiles quedan inactivos para conservar la auditoría; el directorio excluye identidades eliminadas. Las seis cuentas reales permanecen intactas. Ver [retiro y verificación](RETIRO_CUENTAS_QA_2026-11-03.md).

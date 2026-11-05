@@ -11,3 +11,6 @@ test("Remind five minutes before end, snooze only the reminder, and enforce the 
 test("Empty, pending receipt and outside-hours states require a manual action without treating change as sales",()=>{
  const c=qaScheduledCashContext("closed");assert.equal(cashAvailability(c),"closed");c.shift=qaScheduledCashContext().shift;c.shift!.status="awaiting_receipt";assert.equal(cashAvailability(c),"receive");c.schedule!.in_hours=false;assert.equal(cashAvailability(c),"outside");assert.equal(cashAvailability(null),"checking");assert.equal(c.summary.cash,0);
 });
+test("A completed day cannot reopen and keeps yesterday's closing outside the new day's balance",()=>{
+ const c=qaScheduledCashContext('closed');c.day_closed=true;assert.equal(cashAvailability(c),'day_closed');c.day_closed=false;assert.equal(cashAvailability(c),'closed');assert.equal(c.summary.expected_cash,0);
+});
