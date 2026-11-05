@@ -1,5 +1,7 @@
 # Caja diaria: efectivo, QR y saldo inicial
 
+**Regla sustituida el 05/11:** cada día abre obligatoriamente con saldo Bs 0 y el cierre final no se recibe al día siguiente. Las referencias inferiores al arrastre nocturno describen la implementación anterior. Ver [regla vigente](CIERRE_DIARIO_SALDO_CERO_2026-11-05.md).
+
 ## Diagnóstico
 
 El 04/11 se abrió un turno con Bs 1.004,60 recibidos del cierre anterior. Ese importe estaba registrado como `opening_cash`, separado de sus cobros; no era una venta nueva. La presentación destacaba el efectivo esperado junto a las ventas y no ofrecía la suma de ambos turnos del día, lo que confundía a la dueña.

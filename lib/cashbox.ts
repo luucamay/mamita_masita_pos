@@ -2,12 +2,13 @@ import type {CashSchedule} from "./cash-schedule";
 import {validSalesRange} from "./employee-sales.ts";
 export type CashReceipt = {source_kind:"payment"|"movement";source_id:string;order_id:string;order_number:string;recorded_at:string;method:"cash"|"qr"|"card";amount:number;kind:"initial"|"adjustment";received_by:string;receiver_name:string;purchase_type:"customer"|"employee";observation?:string};
 export type CashShift = {
+ is_day_closed?:boolean;
  shift_slot?:"morning"|"afternoon"|null;scheduled_start_at?:string|null;scheduled_end_at?:string|null;
  id:string;cashier_id:string;cashier_name:string;opened_at:string;opening_cash:number;opening_note:string;previous_shift_id:string|null;status:"open"|"awaiting_receipt"|"received";
  closed_at:string|null;closed_by:string|null;closed_by_name:string|null;cash_net:number;qr_net:number;other_net:number;receipt_count:number;counted_cash:number|null;withdrawal:number;cash_left:number|null;difference:number|null;close_note:string;closing_snapshot:CashReceipt[];
  received_at:string|null;received_by:string|null;received_by_name:string|null;received_cash:number|null;receipt_difference:number|null;receipt_note:string;
 };
-export type CashContext = {schedule?:CashSchedule;version:1;actor_id:string;server_time:string;enabled:boolean;shift:CashShift|null;receipts:CashReceipt[];digest:string;summary:{cash:number;qr:number;other:number;receipts:number;expected_cash:number}};
+export type CashContext = {day_closed?:boolean;schedule?:CashSchedule;version:1;actor_id:string;server_time:string;enabled:boolean;shift:CashShift|null;receipts:CashReceipt[];digest:string;summary:{cash:number;qr:number;other:number;receipts:number;expected_cash:number}};
 export type CashHistory = {range:{start:string;end:string;today:string};page:number;page_size:25;total_count:number;shifts:CashShift[]};
 const amount=(n:unknown)=>{if((typeof n!=="string"&&typeof n!=="number")||n===""||!Number.isFinite(Number(n)))throw Error("Importe de caja inválido");return Number(n);};
 export function normalizeCashShift(value:unknown):CashShift{

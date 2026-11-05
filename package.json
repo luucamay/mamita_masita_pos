@@ -53,6 +53,8 @@
     "test:access:ui": "playwright test --config playwright.regression.config.ts access-sharing.spec.ts admin-interface.spec.ts",
     "test:schedule:db": "node scripts/test-p01-database.mjs schedule",
     "test:cashdaily:db": "node scripts/test-p01-database.mjs cashdaily",
+    "test:zeroday:db": "node scripts/test-p01-database.mjs zeroday",
+    "test:zeroday:ui": "playwright test --config playwright.zero-day.config.ts",
     "test:cashdaily:ui": "playwright test --config playwright.cash-daily.config.ts",
     "test:schedule:ui": "playwright test --config playwright.schedule.config.ts",
     "test:observations:db": "node scripts/test-p01-database.mjs observations",

@@ -1,3 +1,4 @@
+import {testZeroDailyCash} from "./test-zero-daily-cash.mjs";
 import {testCashDaily} from "./test-cash-daily.mjs";
 import {testCashSchedule} from "./test-cash-schedule.mjs";
 import {testPaymentObservations} from "./test-payment-observations.mjs";
@@ -67,6 +68,12 @@ try {
   command("initdb", ["-D", data, "-U", "postgres", "-A", "trust", "--encoding=UTF8", "--locale=C"]);
   command("pg_ctl", ["start", "-D", data, "-l", join(temporary, "postgres.log"), "-o", `-h 127.0.0.1 -p ${port} -c wal_level=logical`, "-w", "-t", "30"]);
   started = true;
+  // Fail before any fixture/schema mutation unless this is exactly our new cluster.
+  const connectedData=read("show data_directory");
+  assert.equal(resolve(connectedData).toLowerCase(),resolve(data).toLowerCase());
+  assert.equal(read("select host(inet_server_addr())"),"127.0.0.1");
+  assert.equal(read("select inet_server_port()"),String(port));
+  console.log(JSON.stringify({isolatedServerVerified:true,host:env.PGHOST,port,dataDirectory:connectedData}));
   query(`create role anon; create role authenticated; create role service_role bypassrls;
     create schema auth; create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     grant usage on schema auth to anon,authenticated,service_role; grant execute on function auth.uid() to anon,authenticated,service_role;
@@ -237,7 +244,7 @@ try {
     const final = read(`select status||','||total||','||(select count(*) from public.order_payments p where p.order_id=o.id) from public.orders o where id='${racingOrder}'`);
     assert(["confirmado,79.00,0", "archivado,59.00,1"].includes(final), final);
   });
-  if (["p04", "p05", "p06", "p07", "p09", "p10", "p13", "p14", "compact", "admin", "cashbox", "observations","schedule","cashdaily"].includes(process.argv[2])) {
+  if (["p04", "p05", "p06", "p07", "p09", "p10", "p13", "p14", "compact", "admin", "cashbox", "observations","schedule","cashdaily","zeroday"].includes(process.argv[2])) {
     const migration = migrations.find((file) => file.endsWith("_p04_edit_orders.sql"));
     assert(migration);
     query(`begin; ${readFileSync(join(root, "supabase/migrations", migration), "utf8")} commit;`);
@@ -374,7 +381,7 @@ try {
       assert.equal(read("select count(*) from public.profiles where role='admin'"), "2");
     });
   }
-  if (["p06", "p07", "p09", "p10", "p13", "p14", "compact", "admin", "cashbox", "observations","schedule","cashdaily"].includes(process.argv[2])) {
+  if (["p06", "p07", "p09", "p10", "p13", "p14", "compact", "admin", "cashbox", "observations","schedule","cashdaily","zeroday"].includes(process.argv[2])) {
     query(`create table auth.users(id uuid primary key,email text,raw_app_meta_data jsonb default '{}');`);
     const p05 = migrations.find((file) => file.endsWith("_p05_employee_access.sql"));
     query(readFileSync(join(root, "supabase/migrations", p05), "utf8"));
@@ -455,7 +462,7 @@ try {
       assert.equal(read(`select count(*) from public.daily_promotions where promotion_date='${day}'`), "1");
     });
   }
-  if (["p07", "p09", "p10", "p13", "p14", "compact", "admin", "cashbox", "observations","schedule","cashdaily"].includes(process.argv[2])) {
+  if (["p07", "p09", "p10", "p13", "p14", "compact", "admin", "cashbox", "observations","schedule","cashdaily","zeroday"].includes(process.argv[2])) {
     const before = read("select md5(string_agg(to_jsonb(o)::text,'' order by id)) from public.orders o");
     const previousReport = as("admin", "select coalesce(sum(total_sale_value),0) from public.v_sales_report_daily");
     const migration = migrations.find((file) => file.endsWith("_p07_employee_purchases.sql"));
@@ -529,46 +536,50 @@ try {
       const last=first.purchases[0].order;const second=JSON.parse(as("barista",`select public.list_employee_purchases('mine','${last.created_at}','${last.id}',1)`));assert.notEqual(first.purchases[0].order.id,second.purchases[0].order.id);
     });
   }
-  if (["p09", "p10", "p13", "p14", "compact", "admin", "cashbox", "observations","schedule","cashdaily"].includes(process.argv[2])) {
+  if (["p09", "p10", "p13", "p14", "compact", "admin", "cashbox", "observations","schedule","cashdaily","zeroday"].includes(process.argv[2])) {
     const file = migrations.find(file => file.endsWith("_p09_sales_report_periods.sql"));
     query(readFileSync(join(root, "supabase/migrations", file), "utf8"));
     testReporting({ query, read, as, denied, check, id, espresso, focaccia, cappuccino, includeSummary: process.argv[2] === "p10" });
   }
-  if (["p13","p14","compact", "admin", "cashbox", "observations","schedule","cashdaily"].includes(process.argv[2])) {
+  if (["p13","p14","compact", "admin", "cashbox", "observations","schedule","cashdaily","zeroday"].includes(process.argv[2])) {
     const file = migrations.find(file => file.endsWith("_p13_live_order_board.sql"));
     query(readFileSync(join(root, "supabase/migrations", file), "utf8"));
     testOrderBoard({ query, read, as, denied, check, id });
   }
-  if (["p14","compact", "admin", "cashbox", "observations","schedule","cashdaily"].includes(process.argv[2])) {
+  if (["p14","compact", "admin", "cashbox", "observations","schedule","cashdaily","zeroday"].includes(process.argv[2])) {
     const file=migrations.find(file=>file.endsWith("_p14_read_performance.sql"));
     query(readFileSync(join(root,"supabase/migrations",file),"utf8"));
     testPerformance({query,read,as,denied,check,id});
   }
-  if(["compact","admin", "cashbox", "observations","schedule","cashdaily"].includes(process.argv[2])){
+  if(["compact","admin", "cashbox", "observations","schedule","cashdaily","zeroday"].includes(process.argv[2])){
     for(const suffix of ["_compact_daily_closed.sql","_customer_payment_flows.sql","_payment_recorded_at.sql"]){const file=migrations.find(f=>f.endsWith(suffix));query(readFileSync(join(root,"supabase/migrations",file),"utf8"));}
     await testCustomerFlows({query,read,as,asSql,denied,check,id,espresso,focaccia,cappuccino,concurrently});
   }
-  if(["admin","cashbox", "observations","schedule","cashdaily"].includes(process.argv[2])){
+  if(["admin","cashbox", "observations","schedule","cashdaily","zeroday"].includes(process.argv[2])){
     const migration=migrations.find(f=>f.endsWith("_admin_employee_sales_history.sql"));
     query(readFileSync(join(root,"supabase/migrations",migration),"utf8"));
     testAdminHistory({query,read,as,denied,check,id,espresso});
   }
-  if(["cashbox","observations","schedule","cashdaily"].includes(process.argv[2])){
+  if(["cashbox","observations","schedule","cashdaily","zeroday"].includes(process.argv[2])){
     const migration=migrations.find(f=>f.endsWith("_shift_cashbox_and_employee_passwords.sql"));
     query(readFileSync(join(root,"supabase/migrations",migration),"utf8"));
     await testCashbox({query,read,as,asSql,denied,check,id,espresso,cappuccino,concurrently});
   }
-  if(["observations","schedule","cashdaily"].includes(process.argv[2])){
+  if(["observations","schedule","cashdaily","zeroday"].includes(process.argv[2])){
     const migration=migrations.find(f=>f.endsWith("_payment_observations.sql"));
     await testPaymentObservations({query,read,as,asSql,denied,check,id,espresso,cappuccino,concurrently,apply:()=>query("begin;"+readFileSync(join(root,"supabase/migrations",migration),"utf8")+"commit;")});
   }
-  if(["schedule","cashdaily"].includes(process.argv[2])){
+  if(["schedule","cashdaily","zeroday"].includes(process.argv[2])){
     const migration=migrations.find(f=>f.endsWith("_scheduled_cash_shifts.sql"));
     await testCashSchedule({query,read,as,asSql,denied,check,id,espresso,cappuccino,concurrently,apply:()=>query("begin;"+readFileSync(join(root,"supabase/migrations",migration),"utf8")+"commit;")});
   }
-  if(process.argv[2]==="cashdaily"){
+  if(["cashdaily","zeroday"].includes(process.argv[2])){
     const migration=migrations.find(f=>f.endsWith("_cash_daily_summary.sql"));
     testCashDaily({query,read,as,denied,check,id,apply:()=>query("begin;"+readFileSync(join(root,"supabase/migrations",migration),"utf8")+"commit;")});
+  }
+  if(process.argv[2]==="zeroday"){
+    const migration=migrations.find(f=>f.endsWith("_zero_daily_cash_balance.sql"));
+    testZeroDailyCash({query,read,as,denied,check,id,espresso,apply:()=>query("begin;"+readFileSync(join(root,"supabase/migrations",migration),"utf8")+"commit;")});
   }
   success = true;
   console.log(JSON.stringify({ checksPassed: passed, productionConnected: false, realSalesCreated: false }));

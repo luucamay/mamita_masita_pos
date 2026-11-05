@@ -87,14 +87,15 @@ test("six table shortcuts stay on a single line at small phone widths",async({pa
   await page.screenshot({path:"test-results/turnos/tables-"+width+".png",animations:"disabled"});
  }
 });
-test("cashbox opens with the counted initial cash and never sends a real financial write",async({page})=>{
+test("cashbox opens the new day with mandatory zero and never sends a real financial write",async({page})=>{
  const mock=await mockDrawer(page);await login(page,"STAFF","/caja");
  await page.getByRole("button",{name:"Abrir caja",exact:true}).click();
  const dialog=page.getByRole("dialog",{name:"Abrir caja",exact:true});
- await dialog.getByLabel("Efectivo inicial para cambio (Bs)",{exact:true}).fill("100");
+ await expect(dialog.getByLabel("Saldo inicial del día (Bs)",{exact:true})).toHaveValue("0");
+ await expect(dialog.getByLabel("Saldo inicial del día (Bs)",{exact:true})).toHaveAttribute("readonly","");
  await dialog.getByRole("checkbox").check();await dialog.getByRole("button",{name:"Confirmar apertura",exact:true}).click();
- await expect(page.getByRole("heading",{name:"Caja de Cajero entrante QA",exact:true})).toBeVisible();
- expect(mock.calls).toHaveLength(1);expect(mock.calls[0].body.p_cash).toBe("100.00");expect(mock.calls[0].body.p_previous_shift).toBeNull();
+ await expect(page.getByRole("heading",{name:"Turno · Cajero entrante QA",exact:true})).toBeVisible();
+ expect(mock.calls).toHaveLength(1);expect(mock.calls[0].body.p_cash).toBe("0.00");expect(mock.calls[0].body.p_previous_shift).toBeNull();
 });
 test("close and handover reconcile initial cash, withdrawal and differences; retry does not change the request",async({page})=>{
  const mock=await mockDrawer(page,"open",true);await login(page,"STAFF","/caja");
