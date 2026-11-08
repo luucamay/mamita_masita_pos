@@ -579,7 +579,10 @@ try {
   }
   if(process.argv[2]==="zeroday"){
     const migration=migrations.find(f=>f.endsWith("_zero_daily_cash_balance.sql"));
-    testZeroDailyCash({query,read,as,denied,check,id,espresso,apply:()=>query("begin;"+readFileSync(join(root,"supabase/migrations",migration),"utf8")+"commit;")});
+    const grace=migrations.find(f=>f.endsWith("_morning_cash_grace.sql"));
+    testZeroDailyCash({query,read,as,denied,check,id,espresso,
+      apply:()=>query("begin;"+readFileSync(join(root,"supabase/migrations",migration),"utf8")+"commit;"),
+      applyMorningGrace:()=>query("begin;"+readFileSync(join(root,"supabase/migrations",grace),"utf8")+"commit;")});
   }
   success = true;
   console.log(JSON.stringify({ checksPassed: passed, productionConnected: false, realSalesCreated: false }));

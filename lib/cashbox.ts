@@ -4,6 +4,7 @@ export type CashReceipt = {source_kind:"payment"|"movement";source_id:string;ord
 export type CashShift = {
  is_day_closed?:boolean;
  shift_slot?:"morning"|"afternoon"|null;scheduled_start_at?:string|null;scheduled_end_at?:string|null;
+ operational_end_at?:string|null;
  id:string;cashier_id:string;cashier_name:string;opened_at:string;opening_cash:number;opening_note:string;previous_shift_id:string|null;status:"open"|"awaiting_receipt"|"received";
  closed_at:string|null;closed_by:string|null;closed_by_name:string|null;cash_net:number;qr_net:number;other_net:number;receipt_count:number;counted_cash:number|null;withdrawal:number;cash_left:number|null;difference:number|null;close_note:string;closing_snapshot:CashReceipt[];
  received_at:string|null;received_by:string|null;received_by_name:string|null;received_cash:number|null;receipt_difference:number|null;receipt_note:string;
@@ -14,6 +15,9 @@ const amount=(n:unknown)=>{if((typeof n!=="string"&&typeof n!=="number")||n===""
 export function normalizeCashShift(value:unknown):CashShift{
  const s=value as CashShift;if(!s||!s.id||!["open","awaiting_receipt","received"].includes(s.status)||!Array.isArray(s.closing_snapshot))throw Error("Turno de caja inválido");
  if(s.shift_slot!=null||s.scheduled_start_at!=null||s.scheduled_end_at!=null){if(!["morning","afternoon"].includes(s.shift_slot??"")||!Number.isFinite(Date.parse(s.scheduled_start_at??""))||!Number.isFinite(Date.parse(s.scheduled_end_at??""))||Date.parse(s.scheduled_end_at!)<=Date.parse(s.scheduled_start_at!))throw Error("Horario de caja inválido");}
+ if (s.operational_end_at != null && !Number.isFinite(Date.parse(s.operational_end_at))) {
+  throw Error("Límite operativo de caja inválido");
+ }
  const result={...s};
  for(const key of ["opening_cash","cash_net","qr_net","other_net","withdrawal"] as const)result[key]=amount(s[key]);
  for(const key of ["counted_cash","cash_left","difference","received_cash","receipt_difference"] as const)result[key]=s[key]===null?null:amount(s[key]);

@@ -58,7 +58,7 @@ export function CashboxPanel({initial,history,actorId,role,initialError}:{initia
  const now=useCashClock(context),expired=cashAvailability(context,now)==="expired",outsideHours=context?.schedule?.in_hours===false;
  return <div className="mx-auto max-w-6xl space-y-3 px-3 py-3 sm:px-5">
   {context?<ShiftNotice context={context} showOpen={false}/>:null}
-  <header><h1 className="text-xl font-semibold">Caja y turnos</h1><p className="mt-1 text-xs leading-5 text-[var(--muted)]">Mañana 10:00–14:00 · Tarde 14:00–21:30 · Bolivia. Una caja compartida por turno; cada persona usa su cuenta.</p></header>
+  <header><h1 className="text-xl font-semibold">Caja y turnos</h1><p className="mt-1 text-xs leading-5 text-[var(--muted)]">Mañana 10:00–14:00, con tolerancia hasta las 15:00 · Tarde 14:00–21:30 · Hora de Bolivia.</p></header>
   {error?<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}<button type="button" onClick={()=>void refresh()} className="ml-2 min-h-11 font-semibold underline">Reintentar</button></p>:null}
   {notice?<p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">{notice}</p>:null}
   {refreshing?<p className="text-xs text-[var(--muted)]">Actualizando caja…</p>:null}

@@ -46,7 +46,7 @@ Imprimir abre un ticket mediante el navegador. No conecta una impresora automát
 
 La caja es compartida y tiene un responsable por turno. Los cobros hechos por otras cuentas autorizadas durante ese turno también forman parte de la misma caja; cada movimiento identifica quién cobró.
 
-**Horarios:** Mañana 10:00–14:00 y Tarde 14:00–21:30, hora de Bolivia. Cinco minutos antes aparece un recordatorio dentro de la app, con opción de posponerlo. Al vencer el turno no se pueden registrar nuevos pedidos de clientes ni cobros en esa caja hasta completar el cambio.
+**Horarios.** Mañana de 10:00 a 14:00 y tarde de 14:00 a 21:30, hora de Bolivia. Cinco minutos antes del fin programado aparece un recordatorio con opción de posponerlo. Si la mañana sigue abierta a las 14:00, aparece un aviso de tolerancia y se pueden registrar pedidos y cobros hasta las 15:00. A las 15:00, si sigue abierta, hay que cerrar y entregar la caja para continuar en el turno de tarde.
 
 **Apertura del día:** antes de registrar pedidos o cobrar, el responsable entra en Caja y turnos y confirma Abrir caja con saldo inicial obligatorio Bs 0. No se recibe el saldo de ayer. El sistema asigna el horario vigente. La apertura y el cierre son manuales. Dos cuentas pueden trabajar simultáneamente en la caja compartida; no deben abrir una caja por teléfono.
 

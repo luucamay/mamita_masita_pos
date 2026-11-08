@@ -8,6 +8,12 @@ test('The menu requires manual opening, then enables registration when a shared 
  let c=qaScheduledCashContext('closed');await page.route('**/rest/v1/rpc/get_cashbox_context',route=>route.fulfill({json:c}));
  await page.setViewportSize({width:390,height:844});await login(page,'/menu');await expect(page.getByRole('link',{name:'Abrir caja',exact:true})).toBeVisible();await page.getByPlaceholder('Buscar ítem...').fill('Cappuccino');await page.getByRole('button',{name:'Agregar Cappuccino',exact:true}).click();await page.getByRole('button',{name:'Ver pedido',exact:true}).click();await page.getByRole('button',{name:'1',exact:true}).click();await expect(page.getByRole('button',{name:'Registrar pedido',exact:true})).toBeDisabled();await expect(page.getByRole('link',{name:'Ir a Caja y turnos',exact:true})).toBeVisible();
  await page.screenshot({path:'test-results/cash-schedule/menu-before-opening-mobile.png',animations:'disabled'});c=qaScheduledCashContext();await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await expect(page.getByRole('button',{name:'Registrar pedido',exact:true})).toBeEnabled();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ c=qaScheduledCashContext('grace');await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+ await expect(page.getByText(/Tolerancia del turno de mañana hasta las 15:00/)).toBeVisible();
+ await expect(page.getByRole('button',{name:'Registrar pedido',exact:true})).toBeEnabled();
+ await page.screenshot({path:'test-results/cash-schedule/morning-grace-mobile.png',animations:'disabled'});
+ c=qaScheduledCashContext('expired');await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+ await expect(page.getByRole('button',{name:'Registrar pedido',exact:true})).toBeDisabled();
 });
 
 test('Reminder is visible at 13:56, can be postponed and the deadline still requires manual close',async({page})=>{

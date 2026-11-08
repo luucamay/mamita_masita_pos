@@ -6,7 +6,8 @@ export function cashAvailability(context:CashContext|null,now=Date.parse(context
  if(!context)return "checking";
  const shift=context.shift;
  if(shift?.status==="open"){
-  if(shift.scheduled_end_at&&now>=Date.parse(shift.scheduled_end_at))return "expired";
+  const end = shift.operational_end_at ?? shift.scheduled_end_at;
+  if (end && now >= Date.parse(end)) return "expired";
   if(shift.scheduled_start_at&&now<Date.parse(shift.scheduled_start_at))return "early";
   return "open";
  }
@@ -18,6 +19,18 @@ export function cashAvailability(context:CashContext|null,now=Date.parse(context
 export function shiftLabel(shift:CashShift|null|undefined){return shift?.shift_slot==="morning"?"Mañana":shift?.shift_slot==="afternoon"?"Tarde":"Turno";}
 const time=new Intl.DateTimeFormat("es-BO",{timeZone:"America/La_Paz",hour:"2-digit",minute:"2-digit",hourCycle:"h23"});
 export function shiftHours(shift:CashShift|null|undefined){return shift?.scheduled_start_at&&shift.scheduled_end_at?`${time.format(new Date(shift.scheduled_start_at))}–${time.format(new Date(shift.scheduled_end_at))}`:"";}
+export function shiftGraceEnd(shift: CashShift | null) {
+ const scheduledEnd = Date.parse(shift?.scheduled_end_at ?? "");
+ const operationalEnd = Date.parse(shift?.operational_end_at ?? "");
+ return operationalEnd > scheduledEnd ? time.format(operationalEnd) : null;
+}
+
+export function isInShiftGrace(shift: CashShift | null, now: number) {
+ return shift?.status === "open" &&
+  now >= Date.parse(shift.scheduled_end_at ?? "") &&
+  now < Date.parse(shift.operational_end_at ?? "");
+}
+
 export function cashAvailabilityMessage(state:CashAvailability){return {
  checking:"Verificando caja…",closed:"Abre la caja del día con saldo inicial Bs 0 antes de registrar pedidos.",receive:"Recibe la caja del turno anterior de hoy antes de registrar pedidos.",expired:"Terminó el horario del turno. Cierra y entrega la caja antes de continuar.",early:"El turno todavía no empezó. Revisa el horario de caja.",outside:"Horario de atención: 10:00–21:30, hora de Bolivia.",open:"Caja abierta",day_closed:"Día cerrado. La siguiente jornada comienza con saldo inicial Bs 0.",
  }[state];}
