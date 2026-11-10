@@ -49,6 +49,14 @@ test("P12 empty periods export labeled zero totals without invented sales", asyn
   const input = report(); input.rows = []; input.filtered = { total: 0, units: 0, orders: 0 };
   const sheet = (await open(input)).getWorksheet("Ventas")!; assert.equal(sheet.getCell("A6").result, 0); assert.equal(sheet.getCell("C9").value, 0); assert.equal(sheet.getCell("A11").value, "Sin ventas cobradas para los filtros seleccionados.");
 });
+test("Mixed payments are labeled in the Excel detail and count once in totals", async () => {
+  const input = report();
+  input.rows[0].payment_method = "mixed";
+  const book = await open(input);
+  assert(book.getWorksheet("Desglose")!.getColumn(4).values.includes("Efectivo + QR"));
+  assert.equal(book.getWorksheet("Ventas")!.getCell("A6").result, 63);
+  assert.equal(book.getWorksheet("Ventas")!.getCell("C6").result, 5);
+});
 test("P12 preserves over 1000 products and centavo totals", async () => {
   const input = report(); input.rows = Array.from({ length: 1005 }, (_, i) => ({ ...input.rows[0], menu_item_id: `id${i}`, product_or_service: `Ítem ${i}`, quantity: 1, total_sale_value: 0.01 })); input.filtered = { total: 10.05, orders: 1, units: 1005 };
   const sheet = (await open(input)).getWorksheet("Ventas")!; assert.equal(sheet.getCell("C1014").result, 10.05); assert.equal(new Set(sheet.getRows(9, 1005)!.map(row => row.getCell(1).value)).size, 1005);
