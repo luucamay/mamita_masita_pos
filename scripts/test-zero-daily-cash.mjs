@@ -35,7 +35,9 @@ export function testZeroDailyCash({query,read,as,denied,check,id,espresso,apply,
   const before=read(`select to_jsonb(s) from public.cash_shifts s where id='${afternoon.id}'`);const next=open(0);assert.equal(next.previous_shift_id,null);assert.equal(Number(next.opening_cash),0);assert.equal(context().day_closed,false);assert.equal(context().summary.expected_cash,0);assert.equal(read(`select to_jsonb(s) from public.cash_shifts s where id='${afternoon.id}'`),before);
   morning=next;
  });
- query(`update public.cash_shifts set opened_at=opened_at-interval '1 day',scheduled_end_at=clock_timestamp()-interval '1 second' where id='${morning.id}'`);
+ query(`update public.cash_shifts set opened_at=opened_at-interval '1 day',
+  scheduled_start_at=clock_timestamp()-interval '2 hours',
+  scheduled_end_at=clock_timestamp()-interval '1 second' where id='${morning.id}'`);
  check('A forgotten open turn is never silently counted or closed, and permissions remain enforced',()=>{
   denied('staff',`select public.open_cashbox_shift('${randomUUID()}',0)`,'40001');assert.equal(context().shift.id,morning.id);assert.equal(context().shift.status,'open');
   for(const who of ['anon','cook','barista','inactive','missing'])denied(who,`select public.open_cashbox_shift('${randomUUID()}',0)`,'42501');
