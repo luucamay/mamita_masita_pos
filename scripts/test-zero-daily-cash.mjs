@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
-export function testZeroDailyCash({query,read,as,denied,check,id,espresso,apply,applyMorningGrace}){
+export function testZeroDailyCash({query,read,as,denied,check,id,espresso,apply,applyMorningGrace,applyNightSplit}){
  const fingerprint = () => read("select md5(string_agg(to_jsonb(s)::text,'' order by id)) from public.cash_shifts s");
  const original = fingerprint();
  apply();
@@ -81,5 +81,43 @@ export function testZeroDailyCash({query,read,as,denied,check,id,espresso,apply,
   assert.equal(closed.status, 'awaiting_receipt');
   assert.equal(closed.is_day_closed, false);
   assert.equal(Number(closed.cash_left), 10);
+ });
+
+ const previousCut = fingerprint();
+ applyNightSplit();
+ let newShift;
+ const report = (filter = 'all') => JSON.parse(as('admin', `select public.get_sales_report('daily',null,'${filter}','all')`));
+ const previous = report();
+ const itemRevenue = rows => Math.round(rows.reduce((sum, item) => sum + item.total_sale_value, 0) * 100);
+ const beforeCash = itemRevenue(report('cash').rows), beforeQr = itemRevenue(report('qr').rows);
+ const takeaway = (request, cash, qr) => `select public.place_takeaway_split_payment(
+  'Cobro mixto QA','${items}','${pricing.date}',${pricing.revision},0,'${request}',${cash},${qr},'Nota mixta')`;
+
+ check('Evening grace preserves existing closings and takes orders after the nominal cutoff', () => {
+  assert.equal(fingerprint(), previousCut);
+  query(forced);
+  newShift = open(10, `'${morning.id}'`).id;
+  query(`update public.cash_shifts set shift_slot='afternoon',
+   scheduled_start_at=clock_timestamp()-interval '2 hours',
+   scheduled_end_at=clock_timestamp()-interval '30 minutes' where id='${newShift}'`);
+  const shift = context().shift;
+  assert.equal(Date.parse(shift.operational_end_at) - Date.parse(shift.scheduled_end_at), 3600000);
+ });
+
+ check('Mixed takeaway saves two positive legs atomically, supports retries and can be adjusted and delivered', () => {
+  const request = randomUUID();
+  denied('staff', takeaway(request, 4, 5), '40001');
+  assert.equal(read(`select count(*) from private.customer_order_requests where request_id='${request}'`), '0');
+  const sql = takeaway(request, 3.37, 6.63);
+  const order = JSON.parse(as('staff', sql));
+  assert.equal(JSON.parse(as('staff', sql)).order_id, order.order_id);
+  denied('staff', takeaway(request, 4, 6), '22023');
+  const prepaid = order.snapshot.order;
+  assert.deepEqual(prepaid.payment_methods, ['cash', 'qr']);
+  assert.equal(context().receipts.filter(r => r.order_id === order.order_id && r.observation === 'Nota mixta').length, 2);
+  const add = JSON.stringify([{action:'add',menu_item_id:espresso,quantity:1,expected_unit_price:10}]);
+  const edited = JSON.parse(as('staff', `select public.edit_prepaid_order('${order.order_id}',${prepaid.revision},'${add}','qr',10,'${randomUUID()}')`));
+  assert.equal(Number(edited.order.total), 20);
+  assert.equal(JSON.parse(as('staff', `select public.deliver_prepaid_order('${order.order_id}')`)).order.status, 'archivado');
  });
 }
