@@ -48,6 +48,8 @@ La caja es compartida y tiene un responsable por turno. Los cobros hechos por ot
 
 **Horarios.** Mañana de 10:00 a 14:00 y tarde de 14:00 a 21:30, hora de Bolivia. Cinco minutos antes del fin programado aparece un recordatorio con opción de posponerlo. Si la caja sigue abierta, se pueden registrar pedidos y cobros durante la hora de tolerancia, hasta las 15:00 en la mañana y hasta las 22:30 en la tarde. El cierre sigue disponible después del límite.
 
+**Cobro mixto.** Elige **Efectivo + QR** e ingresa el efectivo recibido. La app calcula el restante por QR. Caja y reportes registran cada parte en su medio.
+
 **Apertura del día:** antes de registrar pedidos o cobrar, el responsable entra en Caja y turnos y confirma Abrir caja con saldo inicial obligatorio Bs 0. No se recibe el saldo de ayer. El sistema asigna el horario vigente. La apertura y el cierre son manuales. Dos cuentas pueden trabajar simultáneamente en la caja compartida; no deben abrir una caja por teléfono.
 
 **Al salir:** Caja → Cerrar y entregar caja. Cuenta todo el efectivo antes de retirar dinero. La pantalla compara inicial + cobros netos en efectivo con lo contado. QR se muestra aparte. Puedes registrar un retiro; indica el motivo si hay retiro o diferencia y confirma el conteo.
