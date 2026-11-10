@@ -22,6 +22,20 @@ test("Morning stays operational from 14:00 through 14:59 and expires at 15:00 Bo
 test("Remind five minutes before end, snooze only the reminder, and enforce the deadline independently",()=>{
  const c=qaScheduledCashContext(),start=Date.parse("2026-11-03T17:55:00Z"),end=Date.parse("2026-11-03T18:00:00Z");assert.equal(reminderDue(c.shift,start-1),false);assert.equal(reminderDue(c.shift,start),true);assert.equal(reminderDue(c.shift,start,start+300000),false);assert.equal(reminderDue(c.shift,end),false);assert.equal(cashAvailability(c,end+3600000),"expired");
 });
+test("Evening grace begins at 21:30 and expires at 22:30 Bolivia", () => {
+ const context = qaScheduledCashContext("night-grace");
+ for (const [at, state, grace] of [
+  ["01:29:59", "open", false],
+  ["01:30:00", "open", true],
+  ["02:29:59", "open", true],
+  ["02:30:00", "expired", false],
+ ] as const) {
+  const now = Date.parse(`2026-11-04T${at}Z`);
+  assert.equal(cashAvailability(context, now), state);
+  assert.equal(isInShiftGrace(context.shift, now), grace);
+ }
+ assert.equal(shiftGraceEnd(context.shift), "22:30");
+});
 test("Empty, pending receipt and outside-hours states require a manual action without treating change as sales",()=>{
  const c=qaScheduledCashContext("closed");assert.equal(cashAvailability(c),"closed");c.shift=qaScheduledCashContext().shift;c.shift!.status="awaiting_receipt";assert.equal(cashAvailability(c),"receive");c.schedule!.in_hours=false;assert.equal(cashAvailability(c),"outside");assert.equal(cashAvailability(null),"checking");assert.equal(c.summary.cash,0);
 });
