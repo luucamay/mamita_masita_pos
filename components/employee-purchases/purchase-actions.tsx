@@ -2,17 +2,23 @@
 import {useState}from"react";
 import {createClient}from"@/lib/supabase/client";
 import {PaymentObservation} from "@/components/orders/payment-observation";
+import type {PaymentChoice} from "@/components/orders/payment-method-picker";
+import {splitPayment} from "@/lib/money";
 import {normalizeEmployeePurchase,employeePurchaseState,type EmployeePurchaseOrder,type EmployeePurchase}from"@/lib/employee-purchases";
 export function PurchaseActions({order,canCollect,onSaved,onReload}:{order:EmployeePurchaseOrder;canCollect:boolean;onSaved:(purchase:EmployeePurchase)=>void;onReload:()=>void}){
- const [method,setMethod]=useState<"cash"|"qr"|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState("");
+ const [method,setMethod]=useState<PaymentChoice|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState("");
  const [observation,setObservation]=useState("");
+ const [cashReceived,setCashReceived]=useState("");
+ const split=method==="mixed"?splitPayment(order.total,cashReceived):null;
+ const canSubmit=!!method&&(method!=="mixed"||!!split);
  async function perform(cancel=false){
-  if(busy||!cancel&&!method)return;
+  if(busy||!cancel&&!canSubmit)return;
   if(cancel&&!window.confirm("¿Cancelar esta compra pendiente? Se conservará en el historial y no se cobrará."))return;
   setBusy(true);setError("");
   try{
    const note=cancel?"":observation.trim();
-   const {data,error}=await createClient().rpc(cancel?"cancel_employee_purchase":note?"checkout_employee_purchase_with_observation":"checkout_employee_purchase",{p_order_id:order.id,p_expected_revision:order.revision,...(cancel?{}:{p_payment_method:method}),...(note?{p_observation:note}:{})});
+   const rpc=cancel?"cancel_employee_purchase":split?"checkout_split_payment":note?"checkout_employee_purchase_with_observation":"checkout_employee_purchase";
+   const {data,error}=await createClient().rpc(rpc,{p_order_id:order.id,p_expected_revision:order.revision,...(cancel?{}:split??{p_payment_method:method}),...(note?{p_observation:note}:{})});
    if(error)throw new Error(error.code==="PGRST202"?"Las compras de empleados todavía no están habilitadas.":error.message);
    onSaved(normalizeEmployeePurchase(data));
   }catch(failure){setError(failure instanceof Error?failure.message:"No se pudo confirmar el resultado. Puedes reintentar sin duplicar el pago.");}finally{setBusy(false);}
