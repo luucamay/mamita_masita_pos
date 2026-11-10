@@ -7,7 +7,7 @@ import { ReceiptList } from "@/components/cashbox/cash-history";
 
 const periods = [{ value: "daily", label: "Diario" }, { value: "weekly", label: "Semanal" }, { value: "monthly", label: "Mensual" }] as const;
 const money = (value: number) => new Intl.NumberFormat("es-BO", { style: "currency", currency: "BOB" }).format(value);
-const methods = { cash: "Efectivo", qr: "QR", card: "Tarjeta" };
+const methods = { cash: "Efectivo", qr: "QR", card: "Tarjeta", mixed: "Efectivo + QR" };
 
 export function ReportView({ report, filters, error = null }: { report: SalesReport | null; filters: ReportFilters; error?: string | null }) {
   const active = { ...filters, date: report?.range.date ?? filters.date };
