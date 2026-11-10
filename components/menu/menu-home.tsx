@@ -19,7 +19,7 @@ import { discountLabel, type PricingContext } from "@/lib/promotions";
 import { usePricingContext } from "@/lib/use-pricing-context";
 import { DiscountBadge } from "@/components/orders/discount-badge";
 import { PaymentObservation } from "@/components/orders/payment-observation";
-import type { PaymentChoice } from "@/components/orders/payment-method-picker";
+import { PaymentMethodPicker, type PaymentChoice } from "@/components/orders/payment-method-picker";
 
 type MenuHomeProps = {
   categories: Category[];
@@ -287,8 +287,8 @@ export function MenuHome({ categories, items, loadError, pricing = null, pricing
             {message?<p role="alert" className="rounded-lg bg-orange-50 p-2 text-sm text-orange-900">{message}</p>:null}
             {quote?.discount_bps?<><div className="flex justify-between text-xs text-[var(--muted)]"><span>Subtotal</span><span>{formatMoney(priced.grossCents/100)}</span></div><div className="flex justify-between text-xs text-orange-800"><span>Descuento ({discountLabel(quote.discount_bps)})</span><span>−{formatMoney(priced.discountCents/100)}</span></div></>:null}
             <div className="flex justify-between font-semibold"><span>Total</span><span>{formatMoney(priced.netCents/100)}</span></div>
-            {tableNumber==="Para llevar"?<div role="group" aria-label="Medio de pago" className="grid grid-cols-2 gap-2">{(["cash","qr"] as const).map(method=><button key={method} type="button" aria-pressed={paymentMethod===method} onClick={()=>setPaymentMethod(method)} className={`min-h-11 rounded-lg border text-sm font-semibold ${paymentMethod===method?"border-orange-500 bg-orange-50 text-orange-900":"border-[var(--border)]"}`}>{method==="cash"?"Efectivo":"QR"}</button>)}</div>:null}
-            <div className="grid grid-cols-[auto_1fr] gap-2"><button type="button" onClick={resetOrder} disabled={saving} className="min-h-11 rounded-lg border border-[var(--border)] px-3 text-sm">Cancelar</button><button type="button" disabled={!cashbox.allowed||saving||checking||!quote||!!quoteError||unavailable||!lines.length} onClick={handleConfirmDraft} className="min-h-11 rounded-lg bg-orange-500 px-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50">{saving?"Guardando...":tableNumber==="Para llevar"?"Cobrar y registrar":"Registrar pedido"}</button></div>
+            {tableNumber==="Para llevar"?<PaymentMethodPicker method={paymentMethod} onMethodChange={setPaymentMethod} total={priced.netCents/100} cash={cashReceived} onCashChange={setCashReceived} disabled={saving}/>:null}
+            <div className="grid grid-cols-[auto_1fr] gap-2"><button type="button" onClick={resetOrder} disabled={saving} className="min-h-11 rounded-lg border border-[var(--border)] px-3 text-sm">Cancelar</button><button type="button" disabled={!cashbox.allowed||saving||checking||!quote||!!quoteError||unavailable||!lines.length||(tableNumber==="Para llevar"&&paymentMethod==="mixed"&&!split)} onClick={handleConfirmDraft} className="min-h-11 rounded-lg bg-orange-500 px-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50">{saving?"Guardando...":tableNumber==="Para llevar"?"Cobrar y registrar":"Registrar pedido"}</button></div>
           </div>
         </div>:null}
       </aside>
