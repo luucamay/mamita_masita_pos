@@ -14,10 +14,19 @@ export function qaCashHistory():CashHistory{return {range:{start:"2026-10-30",en
 
 export function qaScheduledCashContext(state="open",actor=qaCashActor):CashContext{
  const context=qaCashContext(state==="closed"?"empty":"open",actor);
- const afternoon = state === "grace" || state === "expired";
+ const night = state === "night-grace" || state === "night-expired";
+ const afternoon = night || state === "grace" || state === "expired";
  context.enabled=true;
  context.server_time=state==="warning"?"2026-11-03T17:56:00Z":state==="grace"?"2026-11-03T18:30:00Z":state==="expired"?"2026-11-03T19:00:00Z":"2026-11-03T17:00:00Z";
  context.schedule={slot:afternoon?"afternoon":"morning",label:afternoon?"Tarde":"Mañana",date:"2026-11-03",starts_at:afternoon?"2026-11-03T18:00:00Z":"2026-11-03T14:00:00Z",ends_at:afternoon?"2026-11-04T01:30:00Z":"2026-11-03T18:00:00Z",in_hours:true};
  if(context.shift)Object.assign(context.shift,{opened_at:"2026-11-03T14:00:00Z",shift_slot:"morning",scheduled_start_at:"2026-11-03T14:00:00Z",scheduled_end_at:"2026-11-03T18:00:00Z",operational_end_at:"2026-11-03T19:00:00Z"});
+ if (night && context.shift) {
+  context.server_time = state === "night-grace" ? "2026-11-04T02:00:00Z" : "2026-11-04T02:30:00Z";
+  Object.assign(context.shift, {
+   opened_at: context.schedule.starts_at, shift_slot: "afternoon",
+   scheduled_start_at: context.schedule.starts_at, scheduled_end_at: context.schedule.ends_at,
+   operational_end_at: "2026-11-04T02:30:00Z",
+  });
+ }
  return context;
 }
