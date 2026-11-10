@@ -80,7 +80,8 @@ export async function createSalesReportXlsx(report: SalesReport): Promise<Uint8A
  main.getCell("B6").value = report.filtered.orders;
  main.getCell("C6").value = { formula: `B${totalRow}`, result: report.filtered.units };
  const detail = sheet("Desglose", [46, 14, 23, 14, 24], true);
- table(detail, "DesgloseVentas", ["Ítem", "Cantidad", "Ingreso neto", "Pago", "Tipo de compra"], report.rows.map(row => [text(row.product_or_service), row.quantity, row.total_sale_value, row.payment_method === "cash" ? "Efectivo" : row.payment_method === "qr" ? "QR" : row.payment_method === "card" ? "Tarjeta" : "Sin registro", row.purchase_type === "employee" ? "Compra de empleado" : "Cliente"]));
+ const methods = { cash: "Efectivo", qr: "QR", card: "Tarjeta", mixed: "Efectivo + QR" };
+ table(detail, "DesgloseVentas", ["Ítem", "Cantidad", "Ingreso neto", "Pago", "Tipo de compra"], report.rows.map(row => [text(row.product_or_service), row.quantity, row.total_sale_value, row.payment_method ? methods[row.payment_method] : "Sin registro", row.purchase_type === "employee" ? "Compra de empleado" : "Cliente"]));
  for (const [cell, result] of [["A6", report.filtered.total], ["B6", report.filtered.orders], ["C6", report.filtered.units]] as const) detail.getCell(cell).value = { formula: `'Ventas'!${cell}`, result };
  if(report.observations?.length){
   const notes=workbook.addWorksheet("Observaciones",{views:[{state:"frozen",ySplit:5,showGridLines:false}],pageSetup:{paperSize:9,orientation:"landscape",fitToPage:true,fitToWidth:1,fitToHeight:0,printTitlesRow:"1:5"}});
