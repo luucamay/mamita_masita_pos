@@ -13,7 +13,7 @@ export function ShiftNotice({context,showOpen=true}:{context:CashContext;showOpe
  const graceEnd = shiftGraceEnd(shift);
  if (graceEnd && isInShiftGrace(shift, now)) {
   return <div role="status" className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-900">
-   <p className="min-w-0 font-medium">Tolerancia del turno de mañana hasta las {graceEnd}. Puedes seguir cobrando mientras preparas el cierre.</p>
+   <p className="min-w-0 font-medium">Tolerancia del turno de {shiftLabel(shift).toLowerCase()} hasta las {graceEnd}. Puedes seguir cobrando mientras preparas el cierre.</p>
    <Link href="/caja" className="inline-flex min-h-11 shrink-0 items-center font-semibold text-orange-800 underline underline-offset-4">Ir al cierre</Link>
   </div>;
  }
