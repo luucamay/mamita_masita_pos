@@ -16,8 +16,11 @@ import { PurchaseActions } from "@/components/employee-purchases/purchase-action
 import type { EmployeePurchaseOrder } from "@/lib/employee-purchases";
 import { OrderTimers } from "./order-timers";
 import { PaymentObservation } from "./payment-observation";
+import type { PaymentChoice } from "./payment-method-picker";
+import { splitPayment } from "@/lib/money";
 
-type PaymentMethod = "cash" | "qr" | "card";
+type PaymentMethod = "cash" | "qr";
+const paymentLabels: Record<PaymentMethod, string> = { cash: "Efectivo", qr: "QR" };
 
 type OrderDetailItem = OrderLine;
 
@@ -27,12 +30,6 @@ function formatMoney(value: number | string) {
     currency: "BOB",
   }).format(Number(value));
 }
-
-const paymentLabels: Record<PaymentMethod, string> = {
-  cash: "Efectivo",
-  qr: "QR",
-  card: "Tarjeta",
-};
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (character) => ({
@@ -54,8 +51,10 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
   const selectedId = useRef<string|null>(null);
   useEffect(() => setDisplayOrders(orders), [orders]);
   const [workingId, setWorkingId] = useState<string | null>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentChoice | null>(null);
+  const [cashReceived, setCashReceived] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<OpenOrder | null>(null);
+  const split = selectedOrder && selectedPaymentMethod === "mixed" ? splitPayment(selectedOrder.total, cashReceived) : null;
   const [detailItems, setDetailItems] = useState<OrderDetailItem[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
@@ -85,6 +84,7 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
   async function showDetails(order: OpenOrder) {
     setError(null);
     setPaymentObservation("");
+    setCashReceived("");
     setSelectedPaymentMethod(null);
     const requestId = ++detailRequest.current;
     selectionEpoch.current++;selectedId.current=order.id;
@@ -147,7 +147,8 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
     setWorkingId(null);
   }
 
-  async function registerPayment(orderId: string, method: PaymentMethod) {
+  async function registerPayment(orderId: string, method: PaymentChoice) {
+    if (method === "mixed" && !split) return;
     setWorkingId(orderId);
     setError(null);
     const supabase = createClient();
@@ -160,10 +161,10 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
     }
 
     const observation=paymentObservation.trim();
-    const { error: paymentError } = await supabase.rpc(observation?"checkout_order_with_observation":"checkout_order", {
+    const rpc = split ? "checkout_split_payment" : observation ? "checkout_order_with_observation" : "checkout_order";
+    const { error: paymentError } = await supabase.rpc(rpc, {
       p_order_id: orderId,
-      p_payment_method: method,
-      p_received_by: userData.user.id,
+      ...(split ?? { p_payment_method: method, p_received_by: userData.user.id }),
       ...(observation?{p_observation:observation}:{}),
     });
     if (paymentError) {
@@ -479,7 +480,7 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
                       <PaymentObservation value={paymentObservation} onChange={setPaymentObservation} disabled={workingId===selectedOrder.id}/>
                       <button
                         type="button"
-                        disabled={!selectedPaymentMethod || workingId === selectedOrder.id}
+                        disabled={!selectedPaymentMethod || selectedPaymentMethod === "mixed" && !split || workingId === selectedOrder.id}
                         onClick={() => {
                           if (selectedPaymentMethod) {
                             registerPayment(selectedOrder.id, selectedPaymentMethod);
