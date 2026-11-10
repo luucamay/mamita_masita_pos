@@ -2,7 +2,7 @@ import type { ReportFilters } from "./report-filters";
 import type { CashReceipt } from "./cashbox";
 export type SalesReportRow = {
   date: string; menu_item_id?: string | null; product_or_service: string; quantity: number; unit_price: number | null; total_sale_value: number;
-  payment_method: "cash" | "qr" | "card" | null; purchase_type?: "customer" | "employee"; buyer_employee_id?: string | null; order_time?: string;
+  payment_method: "cash" | "qr" | "card" | "mixed" | null; purchase_type?: "customer" | "employee"; buyer_employee_id?: string | null; order_time?: string;
 };
 type MethodTotal = { amount: number; orders: number };
 export type SalesReport = {
