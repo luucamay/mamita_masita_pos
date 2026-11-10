@@ -14,11 +14,12 @@ import {
 } from "@/components/icons";
 import type { Category, DraftOrderLine, MenuItem } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
-import { priceOrder } from "@/lib/money";
+import { priceOrder, splitPayment } from "@/lib/money";
 import { discountLabel, type PricingContext } from "@/lib/promotions";
 import { usePricingContext } from "@/lib/use-pricing-context";
 import { DiscountBadge } from "@/components/orders/discount-badge";
 import { PaymentObservation } from "@/components/orders/payment-observation";
+import type { PaymentChoice } from "@/components/orders/payment-method-picker";
 
 type MenuHomeProps = {
   categories: Category[];
@@ -57,7 +58,8 @@ export function MenuHome({ categories, items, loadError, pricing = null, pricing
   const [customerName, setCustomerName] = useState("");
   const [panelOpen, setPanelOpen] = useState(false);
   const [customTable, setCustomTable] = useState(false);
-  const [paymentMethod,setPaymentMethod]=useState<"cash"|"qr"|null>(null);
+  const [paymentMethod,setPaymentMethod]=useState<PaymentChoice|null>(null);
+  const [cashReceived,setCashReceived]=useState("");
   const [paymentObservation,setPaymentObservation]=useState("");
   const placement=useRef<{payload:string;id:string}|null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -97,6 +99,7 @@ export function MenuHome({ categories, items, loadError, pricing = null, pricing
     () => priceOrder(lines.map((line) => ({ id: line.menuItemId, unitPrice: line.unitPrice, quantity: line.quantity })), quote?.discount_bps ?? 0),
     [lines, quote?.discount_bps],
   );
+  const split = paymentMethod === "mixed" ? splitPayment(priced.netCents / 100, cashReceived) : null;
   const unavailable = lines.some((line) => !items.some((item) => item.id === line.menuItemId && categories.some((category) => category.id === item.category_id)));
   useEffect(() => { setLines((current) => current.map((line) => { const item = items.find((item) => item.id === line.menuItemId); return item ? { ...line, unitPrice: item.price } : line; })); }, [items]);
   const productCount = useMemo(
@@ -159,7 +162,7 @@ export function MenuHome({ categories, items, loadError, pricing = null, pricing
 
   function resetOrder() {
     setLines([]);setCustomTable(false);setPaymentMethod(null);placement.current=null;
-    setPaymentObservation("");
+    setPaymentObservation("");setCashReceived("");
     setTableNumber("");
     setCustomerName("");
     setPanelOpen(false);
@@ -179,7 +182,11 @@ export function MenuHome({ categories, items, loadError, pricing = null, pricing
       return;
     }
 
-    if(tableNumber==="Para llevar"&&!paymentMethod){setMessage("Selecciona Efectivo o QR.");return;}
+    const takeaway = tableNumber === "Para llevar";
+    if (takeaway && (!paymentMethod || paymentMethod === "mixed" && !split)) {
+      setMessage("Selecciona el medio de pago y completa los montos.");
+      return;
+    }
     setSaving(true);
     setMessage(null);
 
@@ -190,11 +197,9 @@ export function MenuHome({ categories, items, loadError, pricing = null, pricing
         throw new Error("Tu sesión expiró. Ingresa nuevamente.");
       }
 
-      const args={
-          ...(tableNumber==="Para llevar"&&paymentObservation.trim()?{p_observation:paymentObservation.trim()}:{}),
-          p_service:tableNumber==="Para llevar"?"takeaway":"table",
-          p_method:tableNumber==="Para llevar"?paymentMethod:null,
-          p_table_number: tableNumber.trim(),
+      const note = takeaway ? paymentObservation.trim() : "";
+      const mixed = takeaway ? split : null;
+      const commonArgs = {
           p_customer_name: customerName.trim() || null,
           p_expected_date: quote.date,
           p_expected_revision: quote.revision,
@@ -205,8 +210,18 @@ export function MenuHome({ categories, items, loadError, pricing = null, pricing
             expected_unit_price: line.unitPrice,
           })),
       };
+      const args = {
+        ...commonArgs,
+        ...(note ? { p_observation: note } : {}),
+        ...(mixed ?? {
+          p_service: takeaway ? "takeaway" : "table",
+          p_method: takeaway ? paymentMethod : null,
+          p_table_number: tableNumber.trim(),
+        }),
+      };
       const payload=JSON.stringify(args);if(placement.current?.payload!==payload)placement.current={payload,id:crypto.randomUUID()};
-      const {data:createdOrder,error:createError}=await supabase.rpc("p_observation" in args?"place_customer_order_with_observation":"place_customer_order",{...args,p_request_id:placement.current.id});
+      const rpc = mixed ? "place_takeaway_split_payment" : note ? "place_customer_order_with_observation" : "place_customer_order";
+      const {data:createdOrder,error:createError}=await supabase.rpc(rpc,{...args,p_request_id:placement.current.id});
       if (createError) {
         if (createError.code === "40001") {
           await refreshQuote(); router.refresh();
