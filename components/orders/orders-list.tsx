@@ -16,11 +16,8 @@ import { PurchaseActions } from "@/components/employee-purchases/purchase-action
 import type { EmployeePurchaseOrder } from "@/lib/employee-purchases";
 import { OrderTimers } from "./order-timers";
 import { PaymentObservation } from "./payment-observation";
-import type { PaymentChoice } from "./payment-method-picker";
+import { PaymentMethodPicker, type PaymentChoice } from "./payment-method-picker";
 import { splitPayment } from "@/lib/money";
-
-type PaymentMethod = "cash" | "qr";
-const paymentLabels: Record<PaymentMethod, string> = { cash: "Efectivo", qr: "QR" };
 
 type OrderDetailItem = OrderLine;
 
@@ -457,26 +454,8 @@ export function OrdersList({ orders, closed = false, testCatalog, nowMs, liveSel
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div>
-                        <p className="mb-2 text-sm font-semibold">Tipo de pago</p>
-                        <div className="flex flex-wrap gap-2">
-                           {(["cash", "qr"] as PaymentMethod[]).map((method) => (
-                            <button
-                              key={method}
-                              type="button"
-                              disabled={workingId === selectedOrder.id}
-                              onClick={() => setSelectedPaymentMethod(method)}
-                              className={`flex-1 rounded-xl border px-3 py-3 text-xs font-semibold hover:bg-gray-50 disabled:opacity-60 ${
-                                selectedPaymentMethod === method
-                                  ? "border-orange-500 bg-orange-50 text-orange-700 ring-1 ring-orange-500"
-                                  : "border-gray-300 bg-white"
-                              }`}
-                            >
-                               {paymentLabels[method]}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                      <PaymentMethodPicker method={selectedPaymentMethod} onMethodChange={setSelectedPaymentMethod}
+                        total={selectedOrder.total} cash={cashReceived} onCashChange={setCashReceived} disabled={workingId === selectedOrder.id} />
                       <PaymentObservation value={paymentObservation} onChange={setPaymentObservation} disabled={workingId===selectedOrder.id}/>
                       <button
                         type="button"
