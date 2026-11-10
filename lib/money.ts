@@ -10,6 +10,16 @@ export function toCents(value: string | number): number {
   return Number(cents);
 }
 
+export function splitPayment(total: string | number, cashInput: string) {
+  try {
+    const cash = toCents(cashInput.trim().replace(",", "."));
+    const qr = toCents(total) - cash;
+    return cash > 0 && qr > 0 ? { p_cash: cash / 100, p_qr: qr / 100 } : null;
+  } catch {
+    return null;
+  }
+}
+
 export type PricingLine = { id: string; unitPrice: string | number; quantity: number };
 export type PricedLine = { id: string; grossCents: number; discountCents: number; netCents: number };
 
