@@ -120,4 +120,48 @@ export function testZeroDailyCash({query,read,as,denied,check,id,espresso,apply,
   assert.equal(Number(edited.order.total), 20);
   assert.equal(JSON.parse(as('staff', `select public.deliver_prepaid_order('${order.order_id}')`)).order.status, 'archivado');
  });
+
+ check('Mixed table and employee checkouts preserve a single order and cannot be replayed as single payments', () => {
+  const table = JSON.parse(as('staff', `select public.place_customer_order('table','2',null,'${items}','${pricing.date}',${pricing.revision},0,null,'${randomUUID()}')`));
+  as('staff', `select public.mark_order_delivered('${table.order_id}','${id.staff}')`);
+  const pay = (cash, qr) => `select public.checkout_split_payment('${table.order_id}',${cash},${qr})`;
+  denied('cook', pay(2,8), '42501');
+  denied('staff', pay(0,10), '22023');
+  denied('staff', pay(1,8), '40001');
+  assert.equal(read(`select count(*) from public.order_payments where order_id='${table.order_id}'`), '0');
+  assert.equal(JSON.parse(as('staff', pay(2,8))).order.status, 'archivado');
+  assert.equal(JSON.parse(as('staff', pay(2,8))).order.status, 'archivado');
+  denied('staff', pay(3,7));
+  denied('staff', `select public.checkout_order('${table.order_id}','cash','${id.staff}')`);
+  const employee = JSON.parse(as('staff', `select public.create_employee_purchase('${items}','${randomUUID()}')`)).order;
+  const result = JSON.parse(as('admin', `select public.checkout_split_payment('${employee.id}',2.01,5.99,'',${employee.revision})`));
+  assert.equal(result.order.status, 'archivado');
+  assert.deepEqual(result.order.payment_methods, ['cash','qr']);
+ });
+
+ check('Cashbox and reports reconcile mixed cash and QR without duplicating orders or products', () => {
+  const current = report();
+  assert.equal(Math.round((current.summary.cash.amount - previous.summary.cash.amount) * 100), 738);
+  assert.equal(Math.round((current.summary.qr.amount - previous.summary.qr.amount) * 100), 3062);
+  assert.equal(current.summary.orders - previous.summary.orders, 3);
+  assert.equal(current.summary.units - previous.summary.units, 4);
+  assert.equal(current.rows.filter(r => r.payment_method === 'mixed').reduce((sum, r) => sum + r.quantity, 0), 3);
+  assert.equal(itemRevenue(report('cash').rows) - beforeCash, 738);
+  assert.equal(itemRevenue(report('qr').rows) - beforeQr, 3062);
+  const shift = context();
+  assert.equal(shift.summary.cash, 7.38);
+  assert.equal(shift.summary.qr, 30.62);
+  assert.equal(shift.summary.receipts, 7);
+ });
+
+ check('After the evening cutoff, new sales stop and manual closing ends the day', () => {
+  query(`update public.cash_shifts set scheduled_end_at=clock_timestamp()-interval '1 hour 1 second' where id='${newShift}'`);
+  denied('staff', takeaway(randomUUID(), 5, 5), '55000');
+  const {digest, summary} = context();
+  const closed = JSON.parse(as('staff', `select public.close_cashbox_shift(
+   '${randomUUID()}','${newShift}','${digest}',${summary.expected_cash})`));
+  assert.equal(closed.is_day_closed, true);
+  assert.equal(Number(closed.cash_net), 7.38);
+  assert.equal(Number(closed.qr_net), 30.62);
+ });
 }
